@@ -461,11 +461,40 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
                 saves: 0,
                 reposts: 0,
                 shares: 0,
-                uniqueReach: 0,
-                uniqueClicks: 0,
-                ctr: 0,
-                followConversions: 0,
-                followConversionRate: 0
+                uniqueReach: Math.floor(Math.random() * 50000) + 5000,
+                uniqueClicks: Math.floor(Math.random() * 1000) + 100,
+                ctr: Math.random() * 5 + 1,
+                followConversions: Math.floor(Math.random() * 100),
+                followConversionRate: Math.random() * 2,
+                appliedContents: Array.from({ length: Math.floor(Math.random() * 3) + 1 }).map((_, idx) => {
+                    const contentLikes = Math.floor(Math.random() * 3000) + 100;
+                    const contentComments = Math.floor(Math.random() * 150) + 10;
+                    const contentSaves = Math.floor(Math.random() * 200) + 20;
+                    const contentReach = Math.floor(Math.random() * 15000) + 2000;
+                    const contentClicks = Math.floor(Math.random() * 500) + 50;
+                    const contentCtr = (contentClicks / contentReach) * 100;
+                    const contentFollowConversions = Math.floor(Math.random() * 50) + 5;
+                    const contentFollowConversionRate = (contentFollowConversions / contentReach) * 100;
+                    return {
+                        id: idx,
+                        thumbnailUrl: [
+                            "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=150&h=150&fit=crop",
+                            "https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=150&h=150&fit=crop",
+                            "https://images.unsplash.com/photo-1576158189891-006d69688c50?w=150&h=150&fit=crop"
+                        ][idx % 3],
+                        contentUrl: `https://instagram.com/p/mock${idx}`,
+                        postedDate: `24.01.${String(Math.floor(Math.random() * 30) + 1).padStart(2, '0')}`,
+                        type: (['피드', '릴스', '스토리'] as const)[idx % 3],
+                        likes: contentLikes,
+                        comments: contentComments,
+                        saves: contentSaves,
+                        uniqueReach: contentReach,
+                        uniqueClicks: contentClicks,
+                        ctr: contentCtr,
+                        followConversions: contentFollowConversions,
+                        followConversionRate: contentFollowConversionRate
+                    };
+                })
             }));
         }
 
@@ -508,7 +537,37 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
                         uniqueClicks: uniqueClicks,
                         ctr: (uniqueClicks / uniqueReach) * 100,
                         followConversions: followConversions,
-                        followConversionRate: (followConversions / uniqueReach) * 100
+                        followConversionRate: (followConversions / uniqueReach) * 100,
+                        // Per-content data
+                        appliedContents: Array.from({ length: Math.floor(baseRandom * 3) + 1 }).map((_, idx) => {
+                            const contentLikes = Math.floor(1000 + baseRandom * 2000 + idx * 500);
+                            const contentComments = Math.floor(50 + baseRandom * 100 + idx * 20);
+                            const contentSaves = Math.floor(100 + baseRandom * 150 + idx * 30);
+                            const contentReach = Math.floor(5000 + baseRandom * 10000 + idx * 2000);
+                            const contentClicks = Math.floor(100 + baseRandom * 400 + idx * 50);
+                            const contentCtr = (contentClicks / contentReach) * 100;
+                            const contentFollowConversions = Math.floor(20 + baseRandom * 30 + idx * 10);
+                            const contentFollowConversionRate = (contentFollowConversions / contentReach) * 100;
+                            return {
+                                id: idx,
+                                thumbnailUrl: [
+                                    "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=150&h=150&fit=crop",
+                                    "https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=150&h=150&fit=crop",
+                                    "https://images.unsplash.com/photo-1576158189891-006d69688c50?w=150&h=150&fit=crop"
+                                ][idx % 3],
+                                contentUrl: `https://instagram.com/p/${inf.username}_${idx}`,
+                                postedDate: `26.01.${String(10 + idx).padStart(2, '0')}`,
+                                type: (['피드', '릴스', '스토리'] as const)[idx % 3],
+                                likes: contentLikes,
+                                comments: contentComments,
+                                saves: contentSaves,
+                                uniqueReach: contentReach,
+                                uniqueClicks: contentClicks,
+                                ctr: contentCtr,
+                                followConversions: contentFollowConversions,
+                                followConversionRate: contentFollowConversionRate
+                            };
+                        })
                     };
                 });
             }
@@ -518,15 +577,25 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
         return [
             {
                 id: 1, influencerId: 1, username: 'beauty_dahyun', displayName: '뷰티 다현', status: 'clicked' as const, sentCount: 120, clickCount: 45, cpv: 28, cpe: 150, isConnected: true,
-                isTemplateShared: true, likes: 1200, comments: 45, saves: 120, reposts: 10, shares: 30, uniqueReach: 5000, uniqueClicks: 40, ctr: 8.5, followConversions: 15, followConversionRate: 3.2
+                isTemplateShared: true, likes: 1200, comments: 45, saves: 120, reposts: 10, shares: 30, uniqueReach: 5000, uniqueClicks: 40, ctr: 8.5, followConversions: 15, followConversionRate: 3.2,
+                appliedContents: [
+                    { id: 0, thumbnailUrl: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=150&h=150&fit=crop", contentUrl: "https://instagram.com/p/beauty1", postedDate: "26.01.10", type: '피드' as const, likes: 1200, comments: 45, saves: 120, uniqueReach: 5000, uniqueClicks: 40, ctr: 8.5, followConversions: 15, followConversionRate: 3.2 },
+                    { id: 1, thumbnailUrl: "https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=150&h=150&fit=crop", contentUrl: "https://instagram.com/p/beauty2", postedDate: "26.01.12", type: '릴스' as const, likes: 2300, comments: 89, saves: 210, uniqueReach: 8000, uniqueClicks: 95, ctr: 11.9, followConversions: 28, followConversionRate: 3.5 }
+                ]
             },
             {
                 id: 2, influencerId: 2, username: 'lifestyle_mina', displayName: '라이프 미나', status: 'read' as const, sentCount: 85, clickCount: 22, cpv: 35, cpe: 180, isConnected: false,
-                isTemplateShared: false, likes: 800, comments: 30, saves: 50, reposts: 5, shares: 15, uniqueReach: 3000, uniqueClicks: 20, ctr: 6.7, followConversions: 8, followConversionRate: 2.5
+                isTemplateShared: false, likes: 800, comments: 30, saves: 50, reposts: 5, shares: 15, uniqueReach: 3000, uniqueClicks: 20, ctr: 6.7, followConversions: 8, followConversionRate: 2.5,
+                appliedContents: [
+                    { id: 0, thumbnailUrl: "https://images.unsplash.com/photo-1576158189891-006d69688c50?w=150&h=150&fit=crop", contentUrl: "https://instagram.com/p/lifestyle1", postedDate: "26.01.08", type: '스토리' as const, likes: 800, comments: 30, saves: 50, uniqueReach: 3000, uniqueClicks: 20, ctr: 6.7, followConversions: 8, followConversionRate: 2.5 }
+                ]
             },
             {
                 id: 3, influencerId: 3, username: 'fashion_jisoo', displayName: '패션 지수', status: 'sent' as const, sentCount: 50, clickCount: 8, cpv: 45, cpe: 220, isConnected: true,
-                isTemplateShared: true, likes: 500, comments: 10, saves: 30, reposts: 2, shares: 10, uniqueReach: 2000, uniqueClicks: 8, ctr: 4.0, followConversions: 2, followConversionRate: 1.0
+                isTemplateShared: true, likes: 500, comments: 10, saves: 30, reposts: 2, shares: 10, uniqueReach: 2000, uniqueClicks: 8, ctr: 4.0, followConversions: 2, followConversionRate: 1.0,
+                appliedContents: [
+                    { id: 0, thumbnailUrl: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=150&h=150&fit=crop", contentUrl: "https://instagram.com/p/fashion1", postedDate: "26.01.14", type: '피드' as const, likes: 500, comments: 10, saves: 30, uniqueReach: 2000, uniqueClicks: 8, ctr: 4.0, followConversions: 2, followConversionRate: 1.0 }
+                ]
             },
         ];
     };
@@ -679,17 +748,7 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
                                 })()
                                 : undefined
                         }
-                        automationInfluencers={campaignInfluencers.map(inf => ({
-                            id: inf.id,
-                            influencerId: inf.id,
-                            username: inf.username,
-                            displayName: inf.displayName,
-                            profileImage: inf.profileImage || '',
-                            status: 'delivered' as const,
-                            sentCount: 0,
-                            clickCount: 0,
-                            isConnected: true
-                        }))}
+                        automationInfluencers={getAutomationInfluencers()}
                         onBack={() => handleNavigate('campaign')}
                         onEdit={() => console.log('Edit campaign')}
                         onAddReactionAutomation={() => {

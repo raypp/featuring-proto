@@ -174,4 +174,22 @@ export interface AutomationInfluencer {
     ctr?: number; // uniqueClicks / uniqueReach * 100
     followConversions?: number;
     followConversionRate?: number; // followConversions / uniqueReach * 100
+
+    // Applied Contents
+    appliedContents?: {
+        id: number;
+        thumbnailUrl?: string;
+        contentUrl: string;
+        postedDate: string; // e.g. '24.01.01'
+        type: '피드' | '릴스' | '스토리' | '쇼츠' | '영상';
+        // Per-content performance metrics
+        likes?: number;
+        comments?: number;
+        saves?: number;
+        uniqueReach?: number;
+        uniqueClicks?: number;
+        ctr?: number;
+        followConversions?: number;
+        followConversionRate?: number;
+    }[];
 }

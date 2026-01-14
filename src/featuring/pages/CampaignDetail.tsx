@@ -1015,6 +1015,7 @@ export function CampaignDetail({ campaign, influencers, contents, reactionAutoma
                                                         />
                                                     </th>
                                                     <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">인플루언서</th>
+                                                    <th className="text-center px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">콘텐츠</th>
                                                     <th className="text-center px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">공유 여부</th>
                                                     <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">좋아요</th>
                                                     <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">댓글</th>
@@ -1027,103 +1028,178 @@ export function CampaignDetail({ campaign, influencers, contents, reactionAutoma
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {effectiveAutomationInfluencers.map((influencer) => (
-                                                    <tr key={influencer.id} className="border-b border-[var(--ft-border-primary)] last:border-b-0 hover:bg-[var(--ft-interactive-tertiary-hover)]">
-                                                        <td className="w-12 px-6 py-4">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={selectedAutomationInfluencers.includes(influencer.id)}
-                                                                onChange={(e) => {
-                                                                    if (e.target.checked) {
-                                                                        setSelectedAutomationInfluencers(prev => [...prev, influencer.id]);
-                                                                    } else {
-                                                                        setSelectedAutomationInfluencers(prev => prev.filter(id => id !== influencer.id));
-                                                                    }
-                                                                }}
-                                                                className="w-4 h-4 rounded border-[var(--ft-border-primary)] text-[var(--ft-color-primary-600)] focus:ring-[var(--ft-color-primary-500)] cursor-pointer"
-                                                            />
-                                                        </td>
-                                                        <td className="px-4 py-4">
-                                                            <div className="flex items-center gap-3">
-                                                                <CoreAvatar src={influencer.profileImage} name={influencer.displayName} size="sm" />
-                                                                <div>
-                                                                    <p className="text-sm font-medium text-[var(--ft-text-primary)]">{influencer.displayName}</p>
-                                                                    <p className="text-xs text-[var(--ft-text-disabled)]">@{influencer.username}</p>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-4 py-4 text-center">
-                                                            <CoreStatusBadge
-                                                                colorType={influencer.isTemplateShared ? 'success' : 'default'}
-                                                                type="tint"
-                                                                size="sm"
-                                                            >
-                                                                {influencer.isTemplateShared ? '공유완료' : '미공유'}
-                                                            </CoreStatusBadge>
-                                                        </td>
-                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
-                                                            {formatNumber(influencer.likes || 0)}
-                                                        </td>
-                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
-                                                            {formatNumber(influencer.comments || 0)}
-                                                        </td>
-                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
-                                                            {formatNumber(influencer.saves || 0)}
-                                                        </td>
-                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
-                                                            {formatNumber(influencer.uniqueReach || 0)}
-                                                        </td>
-                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
-                                                            {formatNumber(influencer.uniqueClicks || 0)}
-                                                        </td>
-                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-color-primary-600)]">
-                                                            {(influencer.ctr || 0).toFixed(1)}%
-                                                        </td>
-                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
-                                                            {formatNumber(influencer.followConversions || 0)}
-                                                        </td>
-                                                        <td className="px-6 py-4 text-right text-sm text-[var(--ft-color-primary-600)]">
-                                                            {(influencer.followConversionRate || 0).toFixed(1)}%
-                                                        </td>
-                                                    </tr>
-                                                ))}
+                                                {effectiveAutomationInfluencers.flatMap((influencer) =>
+                                                    (influencer.appliedContents && influencer.appliedContents.length > 0)
+                                                        ? influencer.appliedContents.map((content) => (
+                                                            <tr key={`${influencer.id}-${content.id}`} className="border-b border-[var(--ft-border-primary)] last:border-b-0 hover:bg-[var(--ft-interactive-tertiary-hover)]">
+                                                                <td className="w-12 px-6 py-4">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={selectedAutomationInfluencers.includes(influencer.id)}
+                                                                        onChange={(e) => {
+                                                                            if (e.target.checked) {
+                                                                                setSelectedAutomationInfluencers(prev => [...prev, influencer.id]);
+                                                                            } else {
+                                                                                setSelectedAutomationInfluencers(prev => prev.filter(id => id !== influencer.id));
+                                                                            }
+                                                                        }}
+                                                                        className="w-4 h-4 rounded border-[var(--ft-border-primary)] text-[var(--ft-color-primary-600)] focus:ring-[var(--ft-color-primary-500)] cursor-pointer"
+                                                                    />
+                                                                </td>
+                                                                <td className="px-4 py-4">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <CoreAvatar src={influencer.profileImage} name={influencer.displayName} size="sm" />
+                                                                        <div>
+                                                                            <p className="text-sm font-medium text-[var(--ft-text-primary)]">{influencer.displayName}</p>
+                                                                            <p className="text-xs text-[var(--ft-text-disabled)]">@{influencer.username}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-4">
+                                                                    <div className="flex items-center justify-center gap-2">
+                                                                        <a
+                                                                            href={content.contentUrl}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            title={`${content.postedDate} • ${content.type}`}
+                                                                            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                                                        >
+                                                                            <img
+                                                                                className="h-8 w-8 rounded-lg object-cover ring-2 ring-[var(--ft-border-primary)]"
+                                                                                src={content.thumbnailUrl}
+                                                                                alt={content.type}
+                                                                            />
+                                                                            <div className="text-left">
+                                                                                <p className="text-xs font-medium text-[var(--ft-text-primary)]">{content.type}</p>
+                                                                                <p className="text-xs text-[var(--ft-text-disabled)]">{content.postedDate}</p>
+                                                                            </div>
+                                                                        </a>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-4 text-center">
+                                                                    <CoreStatusBadge
+                                                                        colorType={influencer.isTemplateShared ? 'success' : 'default'}
+                                                                        type="tint"
+                                                                        size="sm"
+                                                                    >
+                                                                        {influencer.isTemplateShared ? '공유완료' : '미공유'}
+                                                                    </CoreStatusBadge>
+                                                                </td>
+                                                                <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
+                                                                    {formatNumber(content.likes || 0)}
+                                                                </td>
+                                                                <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
+                                                                    {formatNumber(content.comments || 0)}
+                                                                </td>
+                                                                <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
+                                                                    {formatNumber(content.saves || 0)}
+                                                                </td>
+                                                                <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
+                                                                    {formatNumber(content.uniqueReach || 0)}
+                                                                </td>
+                                                                <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
+                                                                    {formatNumber(content.uniqueClicks || 0)}
+                                                                </td>
+                                                                <td className="px-4 py-4 text-right text-sm text-[var(--ft-color-primary-600)]">
+                                                                    {(content.ctr || 0).toFixed(1)}%
+                                                                </td>
+                                                                <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
+                                                                    {formatNumber(content.followConversions || 0)}
+                                                                </td>
+                                                                <td className="px-6 py-4 text-right text-sm text-[var(--ft-color-primary-600)]">
+                                                                    {(content.followConversionRate || 0).toFixed(1)}%
+                                                                </td>
+                                                            </tr>
+                                                        ))
+                                                        : [(
+                                                            <tr key={influencer.id} className="border-b border-[var(--ft-border-primary)] last:border-b-0 hover:bg-[var(--ft-interactive-tertiary-hover)]">
+                                                                <td className="w-12 px-6 py-4">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={selectedAutomationInfluencers.includes(influencer.id)}
+                                                                        onChange={(e) => {
+                                                                            if (e.target.checked) {
+                                                                                setSelectedAutomationInfluencers(prev => [...prev, influencer.id]);
+                                                                            } else {
+                                                                                setSelectedAutomationInfluencers(prev => prev.filter(id => id !== influencer.id));
+                                                                            }
+                                                                        }}
+                                                                        className="w-4 h-4 rounded border-[var(--ft-border-primary)] text-[var(--ft-color-primary-600)] focus:ring-[var(--ft-color-primary-500)] cursor-pointer"
+                                                                    />
+                                                                </td>
+                                                                <td className="px-4 py-4">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <CoreAvatar src={influencer.profileImage} name={influencer.displayName} size="sm" />
+                                                                        <div>
+                                                                            <p className="text-sm font-medium text-[var(--ft-text-primary)]">{influencer.displayName}</p>
+                                                                            <p className="text-xs text-[var(--ft-text-disabled)]">@{influencer.username}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-4 text-center">
+                                                                    <span className="text-sm text-[var(--ft-text-disabled)]">-</span>
+                                                                </td>
+                                                                <td className="px-4 py-4 text-center">
+                                                                    <CoreStatusBadge
+                                                                        colorType={influencer.isTemplateShared ? 'success' : 'default'}
+                                                                        type="tint"
+                                                                        size="sm"
+                                                                    >
+                                                                        {influencer.isTemplateShared ? '공유완료' : '미공유'}
+                                                                    </CoreStatusBadge>
+                                                                </td>
+                                                                <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-disabled)]">-</td>
+                                                                <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-disabled)]">-</td>
+                                                                <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-disabled)]">-</td>
+                                                                <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-disabled)]">-</td>
+                                                                <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-disabled)]">-</td>
+                                                                <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-disabled)]">-</td>
+                                                                <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-disabled)]">-</td>
+                                                                <td className="px-6 py-4 text-right text-sm text-[var(--ft-text-disabled)]">-</td>
+                                                            </tr>
+                                                        )]
+                                                )}
                                             </tbody>
                                             {/* Table Footer - Totals */}
                                             <tfoot className="bg-[var(--ft-bg-secondary)] border-t-2 border-[var(--ft-border-primary)] font-semibold text-[var(--ft-text-primary)]">
                                                 <tr>
                                                     <td className="px-6 py-4 sticky left-0 bg-[var(--ft-bg-secondary)] z-10"></td>
-                                                    <td className="px-4 py-4 sticky left-12 bg-[var(--ft-bg-secondary)] z-10 text-center" colSpan={2}>
+                                                    <td className="px-4 py-4 sticky left-12 bg-[var(--ft-bg-secondary)] z-10 text-center" colSpan={3}>
                                                         전체 합계 / 평균
                                                     </td>
                                                     <td className="px-4 py-4 text-right text-sm">
-                                                        {formatNumber(effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.likes || 0), 0))}
+                                                        {formatNumber(effectiveAutomationInfluencers.flatMap(i => i.appliedContents || []).reduce((sum, c) => sum + (c.likes || 0), 0))}
                                                     </td>
                                                     <td className="px-4 py-4 text-right text-sm">
-                                                        {formatNumber(effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.comments || 0), 0))}
+                                                        {formatNumber(effectiveAutomationInfluencers.flatMap(i => i.appliedContents || []).reduce((sum, c) => sum + (c.comments || 0), 0))}
                                                     </td>
                                                     <td className="px-4 py-4 text-right text-sm">
-                                                        {formatNumber(effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.saves || 0), 0))}
+                                                        {formatNumber(effectiveAutomationInfluencers.flatMap(i => i.appliedContents || []).reduce((sum, c) => sum + (c.saves || 0), 0))}
                                                     </td>
                                                     <td className="px-4 py-4 text-right text-sm">
-                                                        {formatNumber(effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.uniqueReach || 0), 0))}
+                                                        {formatNumber(effectiveAutomationInfluencers.flatMap(i => i.appliedContents || []).reduce((sum, c) => sum + (c.uniqueReach || 0), 0))}
                                                     </td>
                                                     <td className="px-4 py-4 text-right text-sm">
-                                                        {formatNumber(effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.uniqueClicks || 0), 0))}
+                                                        {formatNumber(effectiveAutomationInfluencers.flatMap(i => i.appliedContents || []).reduce((sum, c) => sum + (c.uniqueClicks || 0), 0))}
                                                     </td>
                                                     <td className="px-4 py-4 text-right text-sm text-[var(--ft-color-primary-600)]">
-                                                        {effectiveAutomationInfluencers.length > 0
-                                                            ? ((effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.uniqueClicks || 0), 0) /
-                                                                effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.uniqueReach || 0), 0)) * 100).toFixed(1)
-                                                            : 0}%
+                                                        {(() => {
+                                                            const contents = effectiveAutomationInfluencers.flatMap(i => i.appliedContents || []);
+                                                            const totalClicks = contents.reduce((sum, c) => sum + (c.uniqueClicks || 0), 0);
+                                                            const totalReach = contents.reduce((sum, c) => sum + (c.uniqueReach || 0), 0);
+                                                            return totalReach > 0 ? ((totalClicks / totalReach) * 100).toFixed(1) : 0;
+                                                        })()}%
                                                     </td>
                                                     <td className="px-4 py-4 text-right text-sm">
-                                                        {formatNumber(effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.followConversions || 0), 0))}
+                                                        {formatNumber(effectiveAutomationInfluencers.flatMap(i => i.appliedContents || []).reduce((sum, c) => sum + (c.followConversions || 0), 0))}
                                                     </td>
                                                     <td className="px-6 py-4 text-right text-sm text-[var(--ft-color-primary-600)]">
-                                                        {effectiveAutomationInfluencers.length > 0
-                                                            ? ((effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.followConversions || 0), 0) /
-                                                                effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.uniqueReach || 0), 0)) * 100).toFixed(1)
-                                                            : 0}%
+                                                        {(() => {
+                                                            const contents = effectiveAutomationInfluencers.flatMap(i => i.appliedContents || []);
+                                                            const totalConversions = contents.reduce((sum, c) => sum + (c.followConversions || 0), 0);
+                                                            const totalReach = contents.reduce((sum, c) => sum + (c.uniqueReach || 0), 0);
+                                                            return totalReach > 0 ? ((totalConversions / totalReach) * 100).toFixed(1) : 0;
+                                                        })()}%
                                                     </td>
                                                 </tr>
                                             </tfoot>
