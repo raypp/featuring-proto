@@ -15,7 +15,8 @@ import {
     Send,
     BarChart2,
     MousePointer,
-    Zap
+    Zap,
+    Calendar
 } from "lucide-react";
 import { Campaign, ReactionAutomation as ReactionAutomationType, AutomationInfluencer } from "../types";
 import { CoreButton, CoreTag, CoreDot, CoreAvatar, CoreStatusBadge } from "../../design-system";
@@ -446,18 +447,50 @@ export function ReactionAutomation({
                                 ) : (
                                     /* Stats Summary */
                                     <div className="flex items-center gap-6">
+                                        {/* Campaign Period */}
+                                        {selectedCampaignId && (() => {
+                                            const campaign = campaigns?.find(c => c.id === selectedCampaignId);
+                                            if (campaign?.startDate && campaign?.endDate) {
+                                                return (
+                                                    <div className="flex items-center gap-2">
+                                                        <Calendar className="w-4 h-4 text-[var(--ft-text-disabled)]" />
+                                                        <span className="text-sm text-[var(--ft-text-secondary)]">
+                                                            {campaign.startDate} ~ {campaign.endDate}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
+
+                                        {/* Influencer Count */}
+                                        <div className="flex items-center gap-2">
+                                            <Users className="w-4 h-4 text-[var(--ft-text-disabled)]" />
+                                            <span className="text-sm text-[var(--ft-text-secondary)]">참여: {formatNumber(influencers.length)}명</span>
+                                        </div>
+
+                                        {/* Sent */}
                                         <div className="flex items-center gap-2">
                                             <Send className="w-4 h-4 text-[var(--ft-text-disabled)]" />
                                             <span className="text-sm text-[var(--ft-text-secondary)]">발송: {formatNumber(totalSent)}</span>
                                         </div>
+
+                                        {/* Clicks */}
                                         <div className="flex items-center gap-2">
                                             <MousePointer className="w-4 h-4 text-[var(--ft-text-disabled)]" />
                                             <span className="text-sm text-[var(--ft-text-secondary)]">클릭: {formatNumber(totalClicks)}</span>
                                         </div>
+
+                                        {/* CTR */}
                                         <div className="flex items-center gap-2">
-                                            <BarChart2 className="w-4 h-4 text-[var(--ft-text-disabled)]" />
-                                            <span className="text-sm text-[var(--ft-text-secondary)]">평균 CPV: {avgCpv.toFixed(0)}원</span>
+                                            <Zap className="w-4 h-4 text-[var(--ft-text-disabled)]" />
+                                            <span className="text-sm text-[var(--ft-text-secondary)]">
+                                                CTR: {influencers.length > 0
+                                                    ? ((totalClicks / influencers.reduce((sum, i) => sum + (i.uniqueReach || 0), 0)) * 100).toFixed(1)
+                                                    : 0}%
+                                            </span>
                                         </div>
+
                                         {context === 'campaign' && (
                                             <CoreButton variant="secondary" size="sm" leftIcon={<Users className="w-4 h-4" />}>
                                                 인플루언서 추가
@@ -483,10 +516,10 @@ export function ReactionAutomation({
                             ) : (
                                 <>
                                     <div className="overflow-x-auto">
-                                        <table className="w-full">
+                                        <table className="w-full whitespace-nowrap">
                                             <thead>
                                                 <tr className="border-b border-[var(--ft-border-secondary)] bg-[var(--ft-bg-secondary)]">
-                                                    <th className="w-12 px-6 py-3">
+                                                    <th className="w-12 px-6 py-3 sticky left-0 bg-[var(--ft-bg-secondary)] z-10">
                                                         <input
                                                             type="checkbox"
                                                             checked={selectedInfluencers.length === influencers.length && influencers.length > 0}
@@ -494,19 +527,28 @@ export function ReactionAutomation({
                                                             className="w-4 h-4 rounded border-[var(--ft-border-input)] text-[var(--ft-color-primary-600)] focus:ring-[var(--ft-color-primary-500)]"
                                                         />
                                                     </th>
-                                                    <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">연동</th>
-                                                    <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">인플루언서</th>
-                                                    <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">상태</th>
-                                                    <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">발송 수</th>
-                                                    <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">클릭 수</th>
-                                                    <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">CPV</th>
-                                                    <th className="text-right px-6 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">CPE</th>
+                                                    <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)] sticky left-12 bg-[var(--ft-bg-secondary)] z-10">인플루언서 (ID/상태)</th>
+                                                    <th className="text-center px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">템플릿 공유</th>
+
+                                                    {/* Content Stats */}
+                                                    <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">좋아요</th>
+                                                    <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">댓글</th>
+                                                    <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">저장</th>
+
+                                                    {/* Reach & Click */}
+                                                    <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">도달(Unique)</th>
+                                                    <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">클릭(Unique)</th>
+                                                    <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">CTR</th>
+
+                                                    {/* Conversion */}
+                                                    <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">팔로우 전환</th>
+                                                    <th className="text-right px-6 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">전환율</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {influencers.map((influencer) => (
                                                     <tr key={influencer.id} className="border-b border-[var(--ft-border-primary)] last:border-b-0 hover:bg-[var(--ft-interactive-tertiary-hover)]">
-                                                        <td className="px-6 py-4">
+                                                        <td className="px-6 py-4 sticky left-0 bg-[var(--ft-bg-primary)] group-hover:bg-[var(--ft-interactive-tertiary-hover)] border-r border-transparent z-10">
                                                             <input
                                                                 type="checkbox"
                                                                 checked={selectedInfluencers.includes(influencer.id)}
@@ -514,58 +556,102 @@ export function ReactionAutomation({
                                                                 className="w-4 h-4 rounded border-[var(--ft-border-input)] text-[var(--ft-color-primary-600)] focus:ring-[var(--ft-color-primary-500)]"
                                                             />
                                                         </td>
-                                                        <td className="px-4 py-4">
-                                                            {influencer.isConnected ? (
-                                                                <div className="w-6 h-6 rounded-full bg-[var(--ft-color-success-50)] flex items-center justify-center" title="연동됨">
-                                                                    <Link className="w-3.5 h-3.5 text-[var(--ft-color-success-600)]" />
-                                                                </div>
-                                                            ) : (
-                                                                <div className="w-6 h-6 rounded-full bg-[var(--ft-bg-tertiary)] flex items-center justify-center" title="미연동">
-                                                                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--ft-text-disabled)]" />
-                                                                </div>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-4 py-4">
+                                                        <td className="px-4 py-4 sticky left-12 bg-[var(--ft-bg-primary)] group-hover:bg-[var(--ft-interactive-tertiary-hover)] border-r border-transparent z-10">
                                                             <div className="flex items-center gap-3">
                                                                 <CoreAvatar src={influencer.profileImage} name={influencer.displayName} size="sm" />
                                                                 <div>
-                                                                    <p className="text-sm font-medium text-[var(--ft-text-primary)]">{influencer.displayName}</p>
-                                                                    <p className="text-xs text-[var(--ft-text-disabled)]">@{influencer.username}</p>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <p className="text-sm font-medium text-[var(--ft-text-primary)]">{influencer.displayName}</p>
+                                                                        {influencer.isConnected && (
+                                                                            <Link className="w-3 h-3 text-[var(--ft-color-success-600)]" />
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                                        <p className="text-xs text-[var(--ft-text-disabled)]">@{influencer.username}</p>
+                                                                        <CoreStatusBadge
+                                                                            colorType={
+                                                                                influencer.status === 'clicked' ? 'success' :
+                                                                                    influencer.status === 'read' ? 'informative' :
+                                                                                        influencer.status === 'delivered' ? 'informative' :
+                                                                                            influencer.status === 'sent' ? 'warning' : 'default'
+                                                                            }
+                                                                            type="tint"
+                                                                            size="sm"
+                                                                        >
+                                                                            {influencer.status === 'clicked' ? '클릭됨' :
+                                                                                influencer.status === 'read' ? '읽음' :
+                                                                                    influencer.status === 'delivered' ? '전달됨' :
+                                                                                        influencer.status === 'sent' ? '발송됨' : '대기'}
+                                                                        </CoreStatusBadge>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                        <td className="px-4 py-4">
+                                                        <td className="px-4 py-4 text-center">
                                                             <CoreStatusBadge
-                                                                colorType={
-                                                                    influencer.status === 'clicked' ? 'success' :
-                                                                        influencer.status === 'read' ? 'informative' :
-                                                                            influencer.status === 'delivered' ? 'informative' :
-                                                                                influencer.status === 'sent' ? 'warning' : 'default'
-                                                                }
+                                                                colorType={influencer.isTemplateShared ? 'success' : 'default'}
                                                                 type="tint"
                                                                 size="sm"
                                                             >
-                                                                {influencer.status === 'clicked' ? '클릭됨' :
-                                                                    influencer.status === 'read' ? '읽음' :
-                                                                        influencer.status === 'delivered' ? '전달됨' :
-                                                                            influencer.status === 'sent' ? '발송됨' : '대기'}
+                                                                {influencer.isTemplateShared ? '공유완료' : '미공유'}
                                                             </CoreStatusBadge>
                                                         </td>
-                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
-                                                            {formatNumber(influencer.sentCount)}
-                                                        </td>
-                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
-                                                            {formatNumber(influencer.clickCount)}
-                                                        </td>
-                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
-                                                            {influencer.cpv ? `${influencer.cpv}원` : '-'}
-                                                        </td>
-                                                        <td className="px-6 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
-                                                            {influencer.cpe ? `${influencer.cpe}원` : '-'}
-                                                        </td>
+
+                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">{formatNumber(influencer.likes || 0)}</td>
+                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">{formatNumber(influencer.comments || 0)}</td>
+                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">{formatNumber(influencer.saves || 0)}</td>
+
+                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)] font-medium">{formatNumber(influencer.uniqueReach || 0)}</td>
+                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">{formatNumber(influencer.uniqueClicks || 0)}</td>
+                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-primary)] font-medium">{influencer.ctr?.toFixed(1)}%</td>
+
+                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">{formatNumber(influencer.followConversions || 0)}</td>
+                                                        <td className="px-6 py-4 text-right text-sm text-[var(--ft-text-secondary)]">{influencer.followConversionRate?.toFixed(1)}%</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
+                                            {/* Table Footer - Totals */}
+                                            <tfoot className="bg-[var(--ft-bg-secondary)] border-t-2 border-[var(--ft-border-primary)] font-semibold text-[var(--ft-text-primary)]">
+                                                <tr>
+                                                    <td className="px-6 py-4 sticky left-0 bg-[var(--ft-bg-secondary)] z-10"></td>
+                                                    <td className="px-4 py-4 sticky left-12 bg-[var(--ft-bg-secondary)] z-10 text-center" colSpan={2}>
+                                                        전체 합계 / 평균
+                                                    </td>
+                                                    <td className="px-4 py-4 text-center text-sm text-[var(--ft-text-secondary)]">
+                                                        {formatNumber(influencers.filter(i => i.isTemplateShared).length)}명 공유됨
+                                                    </td>
+                                                    <td className="px-4 py-4 text-right text-sm">
+                                                        {formatNumber(influencers.reduce((sum, i) => sum + (i.likes || 0), 0))}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-right text-sm">
+                                                        {formatNumber(influencers.reduce((sum, i) => sum + (i.comments || 0), 0))}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-right text-sm">
+                                                        {formatNumber(influencers.reduce((sum, i) => sum + (i.saves || 0), 0))}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-right text-sm">
+                                                        {formatNumber(influencers.reduce((sum, i) => sum + (i.uniqueReach || 0), 0))}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-right text-sm">
+                                                        {formatNumber(influencers.reduce((sum, i) => sum + (i.uniqueClicks || 0), 0))}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-right text-sm text-[var(--ft-color-primary-600)]">
+                                                        {influencers.length > 0
+                                                            ? ((influencers.reduce((sum, i) => sum + (i.uniqueClicks || 0), 0) /
+                                                                influencers.reduce((sum, i) => sum + (i.uniqueReach || 0), 0)) * 100).toFixed(1)
+                                                            : 0}%
+                                                    </td>
+                                                    <td className="px-4 py-4 text-right text-sm">
+                                                        {formatNumber(influencers.reduce((sum, i) => sum + (i.followConversions || 0), 0))}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right text-sm text-[var(--ft-color-primary-600)]">
+                                                        {influencers.length > 0
+                                                            ? ((influencers.reduce((sum, i) => sum + (i.followConversions || 0), 0) /
+                                                                influencers.reduce((sum, i) => sum + (i.uniqueReach || 0), 0)) * 100).toFixed(1)
+                                                            : 0}%
+                                                    </td>
+                                                </tr>
+                                            </tfoot>
                                         </table>
                                     </div>
 

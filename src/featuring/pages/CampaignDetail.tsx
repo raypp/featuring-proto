@@ -16,7 +16,9 @@ import {
     ExternalLink,
     Image,
     Plus,
-    Zap
+    Zap,
+    Calendar,
+    MousePointer
 } from "lucide-react";
 import { Campaign, CampaignInfluencer, CampaignContent, ReactionAutomation as ReactionAutomationType, AutomationInfluencer } from "../types";
 import { CoreButton, CoreTag, CoreDot, CoreAvatar, CoreStatusBadge } from "../../design-system";
@@ -149,7 +151,18 @@ export function CampaignDetail({ campaign, influencers, contents, reactionAutoma
         sentCount: 0,
         clickCount: 0,
         cpv: 0,
-        cpe: 0
+        cpe: 0,
+        isTemplateShared: false,
+        likes: 0,
+        comments: 0,
+        saves: 0,
+        reposts: 0,
+        shares: 0,
+        uniqueReach: 0,
+        uniqueClicks: 0,
+        ctr: 0,
+        followConversions: 0,
+        followConversionRate: 0
     }));
 
     // Use campaign influencers for reaction automation if no specific automation influencers provided
@@ -797,10 +810,10 @@ export function CampaignDetail({ campaign, influencers, contents, reactionAutoma
                             return (
                                 <div
                                     className={`rounded-[var(--ft-radius-lg)] border-2 transition-all cursor-pointer group ${!isConfigured
-                                            ? 'border-dashed border-[var(--ft-color-orange-300)] bg-gradient-to-r from-[var(--ft-color-orange-50)] to-[var(--ft-bg-primary)] hover:border-[var(--ft-color-orange-500)] hover:shadow-lg hover:shadow-orange-100'
-                                            : isRunning
-                                                ? 'border-[var(--ft-color-success-300)] bg-[var(--ft-bg-primary)] hover:border-[var(--ft-color-success-500)] hover:shadow-lg hover:shadow-green-100'
-                                                : 'border-[var(--ft-border-primary)] bg-[var(--ft-bg-primary)] hover:border-[var(--ft-color-primary-400)] hover:shadow-lg hover:shadow-purple-100'
+                                        ? 'border-dashed border-[var(--ft-color-orange-300)] bg-gradient-to-r from-[var(--ft-color-orange-50)] to-[var(--ft-bg-primary)] hover:border-[var(--ft-color-orange-500)] hover:shadow-lg hover:shadow-orange-100'
+                                        : isRunning
+                                            ? 'border-[var(--ft-color-success-300)] bg-[var(--ft-bg-primary)] hover:border-[var(--ft-color-success-500)] hover:shadow-lg hover:shadow-green-100'
+                                            : 'border-[var(--ft-border-primary)] bg-[var(--ft-bg-primary)] hover:border-[var(--ft-color-primary-400)] hover:shadow-lg hover:shadow-purple-100'
                                         }`}
                                     onClick={onEditReactionAutomation}
                                 >
@@ -821,8 +834,8 @@ export function CampaignDetail({ campaign, influencers, contents, reactionAutoma
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${isRunning
-                                                        ? 'bg-gradient-to-br from-[var(--ft-color-success-100)] to-[var(--ft-color-success-200)]'
-                                                        : 'bg-gradient-to-br from-[var(--ft-color-orange-100)] to-[var(--ft-color-orange-200)]'
+                                                    ? 'bg-gradient-to-br from-[var(--ft-color-success-100)] to-[var(--ft-color-success-200)]'
+                                                    : 'bg-gradient-to-br from-[var(--ft-color-orange-100)] to-[var(--ft-color-orange-200)]'
                                                     }`}>
                                                     <Zap className={`w-6 h-6 ${isRunning ? 'text-[var(--ft-color-success-600)]' : 'text-[var(--ft-color-orange-600)]'}`} />
                                                 </div>
@@ -897,13 +910,59 @@ export function CampaignDetail({ campaign, influencers, contents, reactionAutoma
                         {/* Influencer Performance Table */}
                         <div className="bg-[var(--ft-bg-primary)] rounded-[var(--ft-radius-lg)] border border-[var(--ft-border-primary)]">
                             <div className="px-6 py-4 border-b border-[var(--ft-border-primary)] flex items-center justify-between">
-                                <h2 className="text-base font-semibold text-[var(--ft-text-primary)] flex items-center gap-2">
-                                    <Users className="w-5 h-5 text-[var(--ft-color-primary-600)]" />
-                                    참여 인플루언서 및 성과
-                                    <span className="text-sm font-normal text-[var(--ft-text-disabled)] ml-2">
-                                        {effectiveAutomationInfluencers.length}명
-                                    </span>
-                                </h2>
+                                <div className="flex items-center gap-6">
+                                    <h2 className="text-base font-semibold text-[var(--ft-text-primary)] flex items-center gap-2">
+                                        <Users className="w-5 h-5 text-[var(--ft-color-primary-600)]" />
+                                        참여 인플루언서 및 성과
+                                    </h2>
+
+                                    {/* Stats Summary */}
+                                    <div className="flex items-center gap-6 pl-6 border-l border-[var(--ft-border-primary)]">
+                                        {/* Campaign Period */}
+                                        {campaign.startDate && campaign.endDate && (
+                                            <div className="flex items-center gap-2">
+                                                <Calendar className="w-4 h-4 text-[var(--ft-text-disabled)]" />
+                                                <span className="text-sm text-[var(--ft-text-secondary)]">
+                                                    {campaign.startDate} ~ {campaign.endDate}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        {/* Influencer Count */}
+                                        <div className="flex items-center gap-2">
+                                            <Users className="w-4 h-4 text-[var(--ft-text-disabled)]" />
+                                            <span className="text-sm text-[var(--ft-text-secondary)]">참여: {formatNumber(effectiveAutomationInfluencers.length)}명</span>
+                                        </div>
+
+                                        {/* Sent */}
+                                        <div className="flex items-center gap-2">
+                                            <Send className="w-4 h-4 text-[var(--ft-text-disabled)]" />
+                                            <span className="text-sm text-[var(--ft-text-secondary)]">
+                                                발송: {formatNumber(effectiveAutomationInfluencers.reduce((sum, i) => sum + i.sentCount, 0))}
+                                            </span>
+                                        </div>
+
+                                        {/* Clicks */}
+                                        <div className="flex items-center gap-2">
+                                            <MousePointer className="w-4 h-4 text-[var(--ft-text-disabled)]" />
+                                            <span className="text-sm text-[var(--ft-text-secondary)]">
+                                                클릭: {formatNumber(effectiveAutomationInfluencers.reduce((sum, i) => sum + i.clickCount, 0))}
+                                            </span>
+                                        </div>
+
+                                        {/* CTR */}
+                                        <div className="flex items-center gap-2">
+                                            <Zap className="w-4 h-4 text-[var(--ft-text-disabled)]" />
+                                            <span className="text-sm text-[var(--ft-text-secondary)]">
+                                                CTR: {effectiveAutomationInfluencers.length > 0
+                                                    ? ((effectiveAutomationInfluencers.reduce((sum, i) => sum + i.clickCount, 0) /
+                                                        effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.uniqueReach || 0), 0)) * 100).toFixed(1)
+                                                    : 0}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div className="flex items-center gap-3">
                                     {selectedAutomationInfluencers.length > 0 && (
                                         <>
@@ -956,11 +1015,15 @@ export function CampaignDetail({ campaign, influencers, contents, reactionAutoma
                                                         />
                                                     </th>
                                                     <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">인플루언서</th>
-                                                    <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">상태</th>
-                                                    <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">발송 수</th>
-                                                    <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">클릭 수</th>
-                                                    <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">CPV</th>
-                                                    <th className="text-right px-6 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">CPE</th>
+                                                    <th className="text-center px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">공유 여부</th>
+                                                    <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">좋아요</th>
+                                                    <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">댓글</th>
+                                                    <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">저장</th>
+                                                    <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">도달</th>
+                                                    <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">클릭</th>
+                                                    <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">CTR</th>
+                                                    <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">팔로우 전환</th>
+                                                    <th className="text-right px-6 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">전환율</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -989,38 +1052,81 @@ export function CampaignDetail({ campaign, influencers, contents, reactionAutoma
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                        <td className="px-4 py-4">
+                                                        <td className="px-4 py-4 text-center">
                                                             <CoreStatusBadge
-                                                                colorType={
-                                                                    influencer.status === 'clicked' ? 'success' :
-                                                                        influencer.status === 'read' ? 'informative' :
-                                                                            influencer.status === 'delivered' ? 'informative' :
-                                                                                influencer.status === 'sent' ? 'warning' : 'default'
-                                                                }
+                                                                colorType={influencer.isTemplateShared ? 'success' : 'default'}
                                                                 type="tint"
                                                                 size="sm"
                                                             >
-                                                                {influencer.status === 'clicked' ? '클릭됨' :
-                                                                    influencer.status === 'read' ? '읽음' :
-                                                                        influencer.status === 'delivered' ? '전달됨' :
-                                                                            influencer.status === 'sent' ? '발송됨' : '대기'}
+                                                                {influencer.isTemplateShared ? '공유완료' : '미공유'}
                                                             </CoreStatusBadge>
                                                         </td>
                                                         <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
-                                                            {influencer.sentCount.toLocaleString()}
+                                                            {formatNumber(influencer.likes || 0)}
                                                         </td>
                                                         <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
-                                                            {influencer.clickCount.toLocaleString()}
+                                                            {formatNumber(influencer.comments || 0)}
                                                         </td>
                                                         <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
-                                                            {influencer.cpv ? `${influencer.cpv}원` : '-'}
+                                                            {formatNumber(influencer.saves || 0)}
                                                         </td>
-                                                        <td className="px-6 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
-                                                            {influencer.cpe ? `${influencer.cpe}원` : '-'}
+                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
+                                                            {formatNumber(influencer.uniqueReach || 0)}
+                                                        </td>
+                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
+                                                            {formatNumber(influencer.uniqueClicks || 0)}
+                                                        </td>
+                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-color-primary-600)]">
+                                                            {(influencer.ctr || 0).toFixed(1)}%
+                                                        </td>
+                                                        <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
+                                                            {formatNumber(influencer.followConversions || 0)}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right text-sm text-[var(--ft-color-primary-600)]">
+                                                            {(influencer.followConversionRate || 0).toFixed(1)}%
                                                         </td>
                                                     </tr>
                                                 ))}
                                             </tbody>
+                                            {/* Table Footer - Totals */}
+                                            <tfoot className="bg-[var(--ft-bg-secondary)] border-t-2 border-[var(--ft-border-primary)] font-semibold text-[var(--ft-text-primary)]">
+                                                <tr>
+                                                    <td className="px-6 py-4 sticky left-0 bg-[var(--ft-bg-secondary)] z-10"></td>
+                                                    <td className="px-4 py-4 sticky left-12 bg-[var(--ft-bg-secondary)] z-10 text-center" colSpan={2}>
+                                                        전체 합계 / 평균
+                                                    </td>
+                                                    <td className="px-4 py-4 text-right text-sm">
+                                                        {formatNumber(effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.likes || 0), 0))}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-right text-sm">
+                                                        {formatNumber(effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.comments || 0), 0))}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-right text-sm">
+                                                        {formatNumber(effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.saves || 0), 0))}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-right text-sm">
+                                                        {formatNumber(effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.uniqueReach || 0), 0))}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-right text-sm">
+                                                        {formatNumber(effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.uniqueClicks || 0), 0))}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-right text-sm text-[var(--ft-color-primary-600)]">
+                                                        {effectiveAutomationInfluencers.length > 0
+                                                            ? ((effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.uniqueClicks || 0), 0) /
+                                                                effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.uniqueReach || 0), 0)) * 100).toFixed(1)
+                                                            : 0}%
+                                                    </td>
+                                                    <td className="px-4 py-4 text-right text-sm">
+                                                        {formatNumber(effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.followConversions || 0), 0))}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right text-sm text-[var(--ft-color-primary-600)]">
+                                                        {effectiveAutomationInfluencers.length > 0
+                                                            ? ((effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.followConversions || 0), 0) /
+                                                                effectiveAutomationInfluencers.reduce((sum, i) => sum + (i.uniqueReach || 0), 0)) * 100).toFixed(1)
+                                                            : 0}%
+                                                    </td>
+                                                </tr>
+                                            </tfoot>
                                         </table>
                                     </div>
 

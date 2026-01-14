@@ -161,4 +161,17 @@ export interface AutomationInfluencer {
     cpe?: number;
     isConnected: boolean;
     lastSentAt?: string;
+
+    // Extended Analytics
+    isTemplateShared: boolean;
+    likes?: number;
+    comments?: number;
+    saves?: number;
+    reposts?: number;
+    shares?: number;
+    uniqueReach?: number;
+    uniqueClicks?: number;
+    ctr?: number; // uniqueClicks / uniqueReach * 100
+    followConversions?: number;
+    followConversionRate?: number; // followConversions / uniqueReach * 100
 }

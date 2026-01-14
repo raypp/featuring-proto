@@ -64,9 +64,8 @@ export function AutomationGroupDetail({
 
     const totalSent = influencers.reduce((sum, i) => sum + i.sentCount, 0);
     const totalClicks = influencers.reduce((sum, i) => sum + i.clickCount, 0);
-    const avgCpv = influencers.length > 0
-        ? influencers.reduce((sum, i) => sum + (i.cpv || 0), 0) / influencers.length
-        : 0;
+    const totalReach = influencers.reduce((sum, i) => sum + (i.uniqueReach || 0), 0);
+    const avgCtr = totalReach > 0 ? (totalClicks / totalReach) * 100 : 0;
 
     // Template status
     const getTemplateStatus = () => {
@@ -183,8 +182,8 @@ export function AutomationGroupDetail({
                                         <span className="text-sm text-[var(--ft-text-disabled)]">클릭: {formatNumber(totalClicks)}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <BarChart2 className="w-4 h-4 text-[var(--ft-text-disabled)]" />
-                                        <span className="text-sm text-[var(--ft-text-disabled)]">평균 CPV: {avgCpv.toFixed(0)}원</span>
+                                        <Zap className="w-4 h-4 text-[var(--ft-text-disabled)]" />
+                                        <span className="text-sm text-[var(--ft-text-disabled)]">CTR: {avgCtr.toFixed(1)}%</span>
                                     </div>
                                 </div>
                             ) : (
@@ -223,11 +222,15 @@ export function AutomationGroupDetail({
                                             </th>
                                             <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">연동</th>
                                             <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">인플루언서</th>
-                                            <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">상태</th>
-                                            <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">발송 수</th>
-                                            <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">클릭 수</th>
-                                            <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">CPV</th>
-                                            <th className="text-right px-6 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">CPE</th>
+                                            <th className="text-center px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">공유 여부</th>
+                                            <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">좋아요</th>
+                                            <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">댓글</th>
+                                            <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">저장</th>
+                                            <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">도달</th>
+                                            <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">클릭</th>
+                                            <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">CTR</th>
+                                            <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">팔로우 전환</th>
+                                            <th className="text-right px-6 py-3 text-xs font-medium text-[var(--ft-text-secondary)]">전환율</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -261,38 +264,83 @@ export function AutomationGroupDetail({
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-4">
+                                                <td className="px-4 py-4 text-center">
                                                     <CoreStatusBadge
-                                                        colorType={
-                                                            influencer.status === 'clicked' ? 'success' :
-                                                                influencer.status === 'read' ? 'informative' :
-                                                                    influencer.status === 'delivered' ? 'informative' :
-                                                                        influencer.status === 'sent' ? 'warning' : 'default'
-                                                        }
+                                                        colorType={influencer.isTemplateShared ? 'success' : 'default'}
                                                         type="tint"
                                                         size="sm"
                                                     >
-                                                        {influencer.status === 'clicked' ? '클릭됨' :
-                                                            influencer.status === 'read' ? '읽음' :
-                                                                influencer.status === 'delivered' ? '전달됨' :
-                                                                    influencer.status === 'sent' ? '발송됨' : '대기'}
+                                                        {influencer.isTemplateShared ? '공유완료' : '미공유'}
                                                     </CoreStatusBadge>
                                                 </td>
                                                 <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
-                                                    {formatNumber(influencer.sentCount)}
+                                                    {formatNumber(influencer.likes || 0)}
                                                 </td>
                                                 <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
-                                                    {formatNumber(influencer.clickCount)}
+                                                    {formatNumber(influencer.comments || 0)}
                                                 </td>
                                                 <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
-                                                    {influencer.cpv ? `${influencer.cpv}원` : '-'}
+                                                    {formatNumber(influencer.saves || 0)}
                                                 </td>
-                                                <td className="px-6 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
-                                                    {influencer.cpe ? `${influencer.cpe}원` : '-'}
+                                                <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
+                                                    {formatNumber(influencer.uniqueReach || 0)}
+                                                </td>
+                                                <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
+                                                    {formatNumber(influencer.uniqueClicks || 0)}
+                                                </td>
+                                                <td className="px-4 py-4 text-right text-sm text-[var(--ft-color-primary-600)]">
+                                                    {(influencer.ctr || 0).toFixed(1)}%
+                                                </td>
+                                                <td className="px-4 py-4 text-right text-sm text-[var(--ft-text-secondary)]">
+                                                    {formatNumber(influencer.followConversions || 0)}
+                                                </td>
+                                                <td className="px-6 py-4 text-right text-sm text-[var(--ft-color-primary-600)]">
+                                                    {(influencer.followConversionRate || 0).toFixed(1)}%
                                                 </td>
                                             </tr>
                                         ))}
                                     </tbody>
+                                    {/* Table Footer - Totals */}
+                                    <tfoot className="bg-[var(--ft-bg-secondary)] border-t-2 border-[var(--ft-border-primary)] font-semibold text-[var(--ft-text-primary)]">
+                                        <tr>
+                                            <td className="px-6 py-4" colSpan={3}>
+                                                전체 합계 / 평균
+                                            </td>
+                                            <td className="px-4 py-4 text-center text-sm text-[var(--ft-text-secondary)]">
+                                                {formatNumber(influencers.filter(i => i.isTemplateShared).length)}명 공유됨
+                                            </td>
+                                            <td className="px-4 py-4 text-right text-sm">
+                                                {formatNumber(influencers.reduce((sum, i) => sum + (i.likes || 0), 0))}
+                                            </td>
+                                            <td className="px-4 py-4 text-right text-sm">
+                                                {formatNumber(influencers.reduce((sum, i) => sum + (i.comments || 0), 0))}
+                                            </td>
+                                            <td className="px-4 py-4 text-right text-sm">
+                                                {formatNumber(influencers.reduce((sum, i) => sum + (i.saves || 0), 0))}
+                                            </td>
+                                            <td className="px-4 py-4 text-right text-sm">
+                                                {formatNumber(influencers.reduce((sum, i) => sum + (i.uniqueReach || 0), 0))}
+                                            </td>
+                                            <td className="px-4 py-4 text-right text-sm">
+                                                {formatNumber(influencers.reduce((sum, i) => sum + (i.uniqueClicks || 0), 0))}
+                                            </td>
+                                            <td className="px-4 py-4 text-right text-sm text-[var(--ft-color-primary-600)]">
+                                                {influencers.length > 0
+                                                    ? ((influencers.reduce((sum, i) => sum + (i.uniqueClicks || 0), 0) /
+                                                        influencers.reduce((sum, i) => sum + (i.uniqueReach || 0), 0)) * 100).toFixed(1)
+                                                    : 0}%
+                                            </td>
+                                            <td className="px-4 py-4 text-right text-sm">
+                                                {formatNumber(influencers.reduce((sum, i) => sum + (i.followConversions || 0), 0))}
+                                            </td>
+                                            <td className="px-6 py-4 text-right text-sm text-[var(--ft-color-primary-600)]">
+                                                {influencers.length > 0
+                                                    ? ((influencers.reduce((sum, i) => sum + (i.followConversions || 0), 0) /
+                                                        influencers.reduce((sum, i) => sum + (i.uniqueReach || 0), 0)) * 100).toFixed(1)
+                                                    : 0}%
+                                            </td>
+                                        </tr>
+                                    </tfoot>
                                 </table>
                             </div>
 

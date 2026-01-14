@@ -454,7 +454,18 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
                 clickCount: 0,
                 cpv: 0,
                 cpe: 0,
-                isConnected: true
+                isConnected: true,
+                isTemplateShared: false,
+                likes: 0,
+                comments: 0,
+                saves: 0,
+                reposts: 0,
+                shares: 0,
+                uniqueReach: 0,
+                uniqueClicks: 0,
+                ctr: 0,
+                followConversions: 0,
+                followConversionRate: 0
             }));
         }
 
@@ -465,27 +476,58 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
             if (group?.linkedCampaignId) {
                 // In a real app, we would filter by campaign ID. Here we use the shared mock data.
                 // Assuming MOCK_CAMPAIGN_INFLUENCERS belongs to the linked campaign.
-                return campaignInfluencers.map(inf => ({
-                    id: inf.id,
-                    influencerId: inf.id,
-                    username: inf.username,
-                    displayName: inf.displayName,
-                    profileImage: inf.profileImage || '',
-                    status: 'clicked' as const, // Mock status for automation view
-                    sentCount: Math.floor(Math.random() * 100),
-                    clickCount: Math.floor(Math.random() * 50),
-                    cpv: Math.floor(Math.random() * 50),
-                    cpe: Math.floor(Math.random() * 200),
-                    isConnected: true
-                }));
+                return campaignInfluencers.map(inf => {
+                    // Generate consistent random data based on influencer ID
+                    const baseRandom = (inf.id * 12345) % 100 / 100;
+                    const uniqueReach = inf.aiReachPrediction ? Math.floor(inf.aiReachPrediction * (0.5 + baseRandom * 0.3)) : 10000;
+                    const sentCount = Math.floor(uniqueReach * 0.8);
+                    const uniqueClicks = Math.floor(uniqueReach * (0.05 + baseRandom * 0.1)); // 5-15% CTR
+                    const followConversions = Math.floor(uniqueClicks * (0.1 + baseRandom * 0.1)); // 10-20% conversion
+
+                    return {
+                        id: inf.id,
+                        influencerId: inf.id,
+                        username: inf.username,
+                        displayName: inf.displayName,
+                        profileImage: inf.profileImage || '',
+                        status: 'clicked' as const, // Mock status for automation view
+                        sentCount: sentCount,
+                        clickCount: uniqueClicks * 1.5, // Total clicks > Unique clicks
+                        cpv: Math.floor(Math.random() * 50),
+                        cpe: Math.floor(Math.random() * 200),
+                        isConnected: true,
+
+                        // New Analytics Fields
+                        isTemplateShared: inf.id % 2 === 0, // Mock 50% shared
+                        likes: Math.floor(uniqueReach * 0.1),
+                        comments: Math.floor(uniqueReach * 0.01),
+                        saves: Math.floor(uniqueReach * 0.02),
+                        reposts: Math.floor(uniqueReach * 0.005),
+                        shares: Math.floor(uniqueReach * 0.015),
+                        uniqueReach: uniqueReach,
+                        uniqueClicks: uniqueClicks,
+                        ctr: (uniqueClicks / uniqueReach) * 100,
+                        followConversions: followConversions,
+                        followConversionRate: (followConversions / uniqueReach) * 100
+                    };
+                });
             }
         }
 
         // Fallback or unlinked groups
         return [
-            { id: 1, influencerId: 1, username: 'beauty_dahyun', displayName: '뷰티 다현', status: 'clicked' as const, sentCount: 120, clickCount: 45, cpv: 28, cpe: 150, isConnected: true },
-            { id: 2, influencerId: 2, username: 'lifestyle_mina', displayName: '라이프 미나', status: 'read' as const, sentCount: 85, clickCount: 22, cpv: 35, cpe: 180, isConnected: false },
-            { id: 3, influencerId: 3, username: 'fashion_jisoo', displayName: '패션 지수', status: 'sent' as const, sentCount: 50, clickCount: 8, cpv: 45, cpe: 220, isConnected: true },
+            {
+                id: 1, influencerId: 1, username: 'beauty_dahyun', displayName: '뷰티 다현', status: 'clicked' as const, sentCount: 120, clickCount: 45, cpv: 28, cpe: 150, isConnected: true,
+                isTemplateShared: true, likes: 1200, comments: 45, saves: 120, reposts: 10, shares: 30, uniqueReach: 5000, uniqueClicks: 40, ctr: 8.5, followConversions: 15, followConversionRate: 3.2
+            },
+            {
+                id: 2, influencerId: 2, username: 'lifestyle_mina', displayName: '라이프 미나', status: 'read' as const, sentCount: 85, clickCount: 22, cpv: 35, cpe: 180, isConnected: false,
+                isTemplateShared: false, likes: 800, comments: 30, saves: 50, reposts: 5, shares: 15, uniqueReach: 3000, uniqueClicks: 20, ctr: 6.7, followConversions: 8, followConversionRate: 2.5
+            },
+            {
+                id: 3, influencerId: 3, username: 'fashion_jisoo', displayName: '패션 지수', status: 'sent' as const, sentCount: 50, clickCount: 8, cpv: 45, cpe: 220, isConnected: true,
+                isTemplateShared: true, likes: 500, comments: 10, saves: 30, reposts: 2, shares: 10, uniqueReach: 2000, uniqueClicks: 8, ctr: 4.0, followConversions: 2, followConversionRate: 1.0
+            },
         ];
     };
 
