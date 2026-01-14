@@ -58,3 +58,7 @@ export type { CoreLoaderProps, CoreLoaderSize, CoreLoaderColor, CorePageLoaderPr
 // Dropdown
 export { CoreDropdown, CoreDropdownItem, CoreDropdownDivider, CoreDropdownLabel } from './CoreDropdown';
 export type { CoreDropdownProps, CoreDropdownItemProps, DropdownPlacement } from './CoreDropdown';
+
+// Service Switcher
+export { ServiceSwitcherBar } from './ServiceSwitcherBar';
+

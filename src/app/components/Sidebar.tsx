@@ -16,6 +16,7 @@ interface SidebarProps {
   currentView: string;
   onChangeView: (view: string) => void;
   onLogout: () => void;
+  hasPendingProposal?: boolean;
 }
 
 function FeaturingStudioLogo() {
@@ -55,7 +56,7 @@ function FeaturingStudioLogo() {
   );
 }
 
-export function Sidebar({ currentView, onChangeView, onLogout }: SidebarProps) {
+export function Sidebar({ currentView, onChangeView, onLogout, hasPendingProposal = false }: SidebarProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // Instagram Badge Avatar Component
@@ -123,8 +124,8 @@ export function Sidebar({ currentView, onChangeView, onLogout }: SidebarProps) {
         <button
           onClick={() => onChangeView('home')}
           className={`w-full h-9 px-3 rounded-lg flex items-center gap-2.5 transition-colors ${currentView === 'home' || currentView === 'dashboard'
-              ? 'bg-[#ecefff]'
-              : 'hover:bg-gray-50'
+            ? 'bg-[#ecefff]'
+            : 'hover:bg-gray-50'
             }`}
         >
           <div className="overflow-clip shrink-0 size-[18px]">
@@ -145,8 +146,8 @@ export function Sidebar({ currentView, onChangeView, onLogout }: SidebarProps) {
         <button
           onClick={() => onChangeView('my-automations')}
           className={`w-full h-9 px-3 rounded-lg flex items-center gap-2.5 transition-colors ${currentView === 'my-automations' || currentView === 'create-automation'
-              ? 'bg-[#ecefff]'
-              : 'hover:bg-gray-50'
+            ? 'bg-[#ecefff]'
+            : 'hover:bg-gray-50'
             }`}
         >
           <div className="overflow-clip shrink-0 size-[18px]">
@@ -165,8 +166,8 @@ export function Sidebar({ currentView, onChangeView, onLogout }: SidebarProps) {
         <button
           onClick={() => onChangeView('campaigns')}
           className={`w-full h-9 px-3 rounded-lg flex items-center gap-2.5 transition-colors ${currentView === 'campaigns' || currentView === 'campaign-detail' || currentView === 'proposal-detail'
-              ? 'bg-[#ecefff]'
-              : 'hover:bg-gray-50'
+            ? 'bg-[#ecefff]'
+            : 'hover:bg-gray-50'
             }`}
         >
           <div className="overflow-clip shrink-0 size-[18px]">
@@ -180,6 +181,9 @@ export function Sidebar({ currentView, onChangeView, onLogout }: SidebarProps) {
             }`}>
             캠페인
           </p>
+          {hasPendingProposal && (
+            <span className="w-2 h-2 bg-[#ef4444] rounded-full animate-pulse" />
+          )}
         </button>
       </nav>
 

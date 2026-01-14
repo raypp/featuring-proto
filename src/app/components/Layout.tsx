@@ -6,15 +6,17 @@ interface LayoutProps {
   currentView: string;
   onChangeView: (view: string) => void;
   onLogout: () => void;
+  hasPendingProposal?: boolean;
 }
 
-export function Layout({ children, currentView, onChangeView, onLogout }: LayoutProps) {
+export function Layout({ children, currentView, onChangeView, onLogout, hasPendingProposal = false }: LayoutProps) {
   return (
     <div className="flex h-screen w-full bg-slate-50 dark:bg-slate-900 overflow-hidden">
-      <Sidebar 
-        currentView={currentView} 
-        onChangeView={onChangeView} 
+      <Sidebar
+        currentView={currentView}
+        onChangeView={onChangeView}
         onLogout={onLogout}
+        hasPendingProposal={hasPendingProposal}
       />
       <main className={`flex-1 overflow-y-auto ${currentView === 'account-settings' ? 'bg-[#fafafa]' : ''}`}>
         {currentView === 'account-settings' ? (

@@ -31,6 +31,17 @@ export interface DMTemplate {
     status: TemplateStatus;
     lastModified?: string;
     deployedAt?: string;
+
+    // Extended fields for Proposal Mode
+    triggerKeywords?: string[];
+    publicReplyTexts?: string[];
+    publicReplyActive?: boolean;
+    postData?: {
+        id: string;
+        image: string;
+        caption: string;
+        date: string;
+    };
 }
 
 // 인플루언서

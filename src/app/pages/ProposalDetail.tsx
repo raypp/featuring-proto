@@ -1,343 +1,206 @@
-import { useState } from "react";
-import { Button } from "../components/ui/button";
-import { Card, CardContent } from "../components/ui/card";
-import { Input } from "../components/ui/input";
-import { Textarea } from "../components/ui/textarea";
-import {
-    ArrowLeft,
-    Gift,
-    Check,
-    Lock,
-    MessageSquare,
-    Hash,
-    Link,
-    Sparkles,
-    AlertCircle
-} from "lucide-react";
+import { useMemo } from "react";
 import { CampaignProposal, InstagramPost } from "../types/CampaignProposal";
-import { PostGrid } from "../components/PostGrid";
+import { TemplateManagement } from "../../featuring/pages/TemplateManagement";
+import { DMTemplate } from "../../featuring/types";
+import { ChevronLeft, X, Handshake, CheckCircle2, AlertCircle, Lock, BarChart3 } from "lucide-react";
 
 interface ProposalDetailProps {
     proposal: CampaignProposal;
     posts: InstagramPost[];
     onBack: () => void;
     onActivate: (proposalId: number, postId: string, editedData: Partial<CampaignProposal>) => void;
+    onAccept?: (proposalId: number) => void;
+    onReject?: (proposalId: number) => void;
 }
 
-type Step = 'preview' | 'select-post' | 'review' | 'success';
+export function ProposalDetail({ proposal, posts, onBack, onActivate, onAccept, onReject }: ProposalDetailProps) {
+    const isPending = proposal.status === 'pending';
+    const isRejected = proposal.status === 'rejected';
 
-export function ProposalDetail({ proposal, posts, onBack, onActivate }: ProposalDetailProps) {
-    const [currentStep, setCurrentStep] = useState<Step>('preview');
-    const [selectedPostId, setSelectedPostId] = useState<string | undefined>(proposal.selectedPostId);
+    // Map CampaignProposal to DMTemplate for TemplateManagement
+    const initialTemplateData: DMTemplate = useMemo(() => {
+        const selectedPost = posts.find(p => p.id === proposal.selectedPostId);
 
-    // Editable fields
-    const [triggerKeywords, setTriggerKeywords] = useState<string[]>(proposal.triggerKeywords);
-    const [newKeyword, setNewKeyword] = useState('');
-    const [publicReply, setPublicReply] = useState(proposal.publicReplyTexts[0] || '');
-    const [dmMessage, setDmMessage] = useState(proposal.dmMessage);
+        return {
+            id: proposal.templateId,
+            automationGroupId: proposal.id,
+            dmGuide: proposal.customizedMessage || proposal.dmMessage,
+            ctaLinks: proposal.ctaLink ? [{ buttonName: proposal.ctaButtonText, url: proposal.ctaLink }] : [],
+            status: 'draft',
+            triggerKeywords: proposal.triggerKeywords,
+            publicReplyTexts: proposal.publicReplyTexts,
+            publicReplyActive: proposal.publicReplyTexts.length > 0,
+            postData: selectedPost ? {
+                id: selectedPost.id,
+                image: selectedPost.thumbnailUrl,
+                caption: selectedPost.caption || '',
+                date: selectedPost.postedAt
+            } : undefined
+        };
+    }, [proposal, posts]);
 
-    const handleAddKeyword = () => {
-        if (newKeyword.trim() && !triggerKeywords.includes(newKeyword.trim())) {
-            setTriggerKeywords([...triggerKeywords, newKeyword.trim()]);
-            setNewKeyword('');
-        }
-    };
-
-    const handleRemoveKeyword = (keyword: string) => {
-        setTriggerKeywords(triggerKeywords.filter(k => k !== keyword));
-    };
-
-    const handleActivate = () => {
-        if (!selectedPostId) return;
-
-        onActivate(proposal.id, selectedPostId, {
-            triggerKeywords,
-            publicReplyTexts: publicReply ? [publicReply] : [],
-            dmMessage
-        });
-        setCurrentStep('success');
-    };
-
-    const selectedPost = posts.find(p => p.id === selectedPostId);
-
-    // Step 1: Preview
-    if (currentStep === 'preview') {
+    // Pending state: Show brand collaboration invite
+    if (isPending) {
         return (
-            <div className="flex flex-col h-full bg-[#fafafa]">
+            <div className="h-full bg-gradient-to-b from-[#fafaff] to-[#f0f0ff] flex flex-col">
                 {/* Header */}
-                <div className="px-4 py-3 border-b border-[#f0f0f0] bg-white flex items-center gap-3">
-                    <button onClick={onBack} className="p-1">
-                        <ArrowLeft className="w-5 h-5 text-[#707070]" />
-                    </button>
-                    <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#5e51ff]/10 text-[#5e51ff] text-xs font-medium rounded-full">
-                            <Gift className="w-3 h-3" />
-                            {proposal.brandName}의 제안
-                        </span>
+                <div className="bg-white h-[60px] border-b border-[#e5e7eb] shrink-0">
+                    <div className="flex items-center h-full px-8">
+                        <button onClick={onBack} className="p-1 hover:bg-[#f5f5f5] rounded transition-colors mr-3">
+                            <ChevronLeft className="w-5 h-5 text-[#707070]" />
+                        </button>
+                        <Handshake className="w-5 h-5 text-[#5e51ff] mr-2" />
+                        <p className="font-medium text-base text-[#242424]">브랜드 협업 초대</p>
                     </div>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-auto p-4">
-                    {/* Brand Info */}
-                    <div className="text-center mb-6">
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-3">
-                            {proposal.brandLogo ? (
-                                <img src={proposal.brandLogo} alt={proposal.brandName} className="w-full h-full rounded-full object-cover" />
-                            ) : (
-                                <span className="text-white font-bold text-2xl">{proposal.brandName.charAt(0)}</span>
-                            )}
-                        </div>
-                        <h1 className="text-lg font-medium text-[#242424]">{proposal.campaignName}</h1>
-                        <p className="text-sm text-[#707070] mt-1">{proposal.brandName}</p>
-                    </div>
-
-                    {/* DM Preview Mockup */}
-                    <Card className="rounded-2xl border border-[#e0e0e0] overflow-hidden mb-6">
-                        <div className="bg-gradient-to-b from-[#833ab4] via-[#fd1d1d] to-[#fcb045] p-0.5">
-                            <div className="bg-white rounded-t-xl">
-                                <div className="px-4 py-3 border-b border-[#f0f0f0] flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500" />
-                                    <span className="text-sm font-medium">브랜드 계정</span>
+                <div className="flex-1 overflow-y-auto flex items-center justify-center p-8">
+                    <div className="max-w-lg w-full">
+                        {/* Brand Card */}
+                        <div className="bg-white rounded-2xl shadow-lg border border-[#e5e7eb] overflow-hidden">
+                            {/* Header with gradient */}
+                            <div className="bg-gradient-to-r from-[#5e51ff] to-[#8b5cf6] p-6 text-center">
+                                <div className="w-20 h-20 rounded-full bg-white mx-auto mb-4 flex items-center justify-center shadow-md">
+                                    {proposal.brandLogo ? (
+                                        <img src={proposal.brandLogo} alt={proposal.brandName} className="w-full h-full rounded-full object-cover" />
+                                    ) : (
+                                        <span className="text-[#5e51ff] font-bold text-3xl">{proposal.brandName.charAt(0)}</span>
+                                    )}
                                 </div>
-                                <div className="p-4">
-                                    <div className="bg-[#f0f0f0] rounded-2xl rounded-tl-sm p-3 max-w-[80%]">
-                                        <p className="text-sm text-[#242424] whitespace-pre-wrap">{proposal.dmMessage}</p>
-                                        {proposal.ctaLink && (
-                                            <Button className="mt-3 w-full bg-[#5e51ff] hover:bg-[#5e51ff]/90 text-sm">
-                                                {proposal.ctaButtonText || '자세히 보기'}
-                                            </Button>
-                                        )}
+                                <h1 className="text-xl font-semibold text-white mb-1">{proposal.brandName}</h1>
+                                <p className="text-sm text-white/80">{proposal.campaignName}</p>
+                            </div>
+
+                            {/* Message */}
+                            <div className="p-6">
+                                <div className="bg-[#f8f7ff] rounded-xl p-5 mb-6">
+                                    <p className="text-base font-medium text-[#374151] text-center mb-4">
+                                        🤝 브랜드사가 협업을 제안했습니다
+                                    </p>
+                                    <p className="text-sm text-[#6b7280] text-center leading-relaxed">
+                                        해당 템플릿을 사용하여 진행해야<br />
+                                        <span className="text-[#5e51ff] font-medium">캠페인 참여로 반영</span>됩니다.
+                                    </p>
+                                </div>
+
+                                {/* Notice Items */}
+                                <div className="space-y-3 mb-6">
+                                    <div className="flex items-start gap-3 p-3 bg-[#f0fdf4] rounded-lg border border-[#bbf7d0]">
+                                        <CheckCircle2 className="w-5 h-5 text-[#22c55e] shrink-0 mt-0.5" />
+                                        <p className="text-sm text-[#166534]">
+                                            수락 후 템플릿 내 DM 메시지를 자유롭게 수정할 수 있습니다.
+                                        </p>
                                     </div>
+
+                                    {proposal.isCtaLocked && (
+                                        <div className="flex items-start gap-3 p-3 bg-[#fef3c7] rounded-lg border border-[#fcd34d]">
+                                            <Lock className="w-5 h-5 text-[#d97706] shrink-0 mt-0.5" />
+                                            <p className="text-sm text-[#92400e]">
+                                                CTA 링크는 브랜드 정책에 따라 수정이 불가합니다.
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    <div className="flex items-start gap-3 p-3 bg-[#eff6ff] rounded-lg border border-[#bfdbfe]">
+                                        <BarChart3 className="w-5 h-5 text-[#3b82f6] shrink-0 mt-0.5" />
+                                        <p className="text-sm text-[#1e40af]">
+                                            브랜드사에 <span className="font-medium">해당 자동화에 대한 성과가 공유</span>됩니다.
+                                            <br />
+                                            <span className="text-xs text-[#3b82f6]/70">(다른 자동화는 공유되지 않습니다)</span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => onReject?.(proposal.id)}
+                                        className="flex-1 h-12 rounded-xl border border-[#e5e7eb] bg-white hover:bg-[#f9fafb] transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <X className="w-4 h-4 text-[#6b7280]" />
+                                        <span className="font-medium text-sm text-[#374151]">거절하기</span>
+                                    </button>
+                                    <button
+                                        onClick={() => onAccept?.(proposal.id)}
+                                        className="flex-1 h-12 rounded-xl bg-[#5e51ff] hover:bg-[#4a3de0] transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[#5e51ff]/25"
+                                    >
+                                        <Handshake className="w-4 h-4 text-white" />
+                                        <span className="font-medium text-sm text-white">수락하기</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                    </Card>
 
-                    {/* Info */}
-                    <div className="bg-[#f5f3ff] rounded-lg p-4 flex gap-3">
-                        <Sparkles className="w-5 h-5 text-[#5e51ff] flex-shrink-0 mt-0.5" />
-                        <div>
-                            <p className="text-sm font-medium text-[#242424] mb-1">자동화가 적용되면</p>
-                            <p className="text-sm text-[#707070]">
-                                게시물에 댓글이 달리면 자동으로 위 메시지가 DM으로 전송됩니다.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Sticky CTA */}
-                <div className="p-4 border-t border-[#f0f0f0] bg-white">
-                    <Button
-                        className="w-full h-12 bg-[#5e51ff] hover:bg-[#5e51ff]/90 text-base font-medium"
-                        onClick={() => setCurrentStep('select-post')}
-                    >
-                        이 템플릿 사용하기
-                    </Button>
-                </div>
-            </div>
-        );
-    }
-
-    // Step 2: Select Post
-    if (currentStep === 'select-post') {
-        return (
-            <div className="flex flex-col h-full bg-[#fafafa]">
-                {/* Header */}
-                <div className="px-4 py-3 border-b border-[#f0f0f0] bg-white flex items-center gap-3">
-                    <button onClick={() => setCurrentStep('preview')} className="p-1">
-                        <ArrowLeft className="w-5 h-5 text-[#707070]" />
-                    </button>
-                    <h1 className="text-base font-medium">게시물 선택</h1>
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 overflow-auto">
-                    <div className="p-4 pb-2">
-                        <p className="text-sm text-[#707070]">
-                            자동화를 적용할 게시물을 선택해주세요.
-                            <br />
-                            선택한 게시물의 댓글에 자동 DM이 발송됩니다.
+                        {/* Footer note */}
+                        <p className="text-xs text-[#9ca3af] text-center mt-4">
+                            수락 후에도 언제든지 자동화를 중단할 수 있습니다.
                         </p>
                     </div>
-                    <PostGrid
-                        posts={posts}
-                        selectedPostId={selectedPostId}
-                        onSelect={setSelectedPostId}
-                    />
-                </div>
-
-                {/* Sticky CTA */}
-                <div className="p-4 border-t border-[#f0f0f0] bg-white">
-                    <Button
-                        className="w-full h-12 bg-[#5e51ff] hover:bg-[#5e51ff]/90 text-base font-medium disabled:opacity-50"
-                        disabled={!selectedPostId}
-                        onClick={() => setCurrentStep('review')}
-                    >
-                        다음
-                    </Button>
                 </div>
             </div>
         );
     }
 
-    // Step 3: Review & Edit
-    if (currentStep === 'review') {
+    // Rejected state: Show archived view
+    if (isRejected) {
         return (
-            <div className="flex flex-col h-full bg-[#fafafa]">
-                {/* Header */}
-                <div className="px-4 py-3 border-b border-[#f0f0f0] bg-white flex items-center gap-3">
-                    <button onClick={() => setCurrentStep('select-post')} className="p-1">
-                        <ArrowLeft className="w-5 h-5 text-[#707070]" />
-                    </button>
-                    <h1 className="text-base font-medium">설정 검토</h1>
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 overflow-auto p-4 space-y-4">
-                    {/* Selected Post Preview */}
-                    {selectedPost && (
-                        <Card className="rounded-lg border border-[#f0f0f0]">
-                            <CardContent className="p-3 flex items-center gap-3">
-                                <img
-                                    src={selectedPost.thumbnailUrl}
-                                    alt=""
-                                    className="w-12 h-12 rounded-md object-cover"
-                                />
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium text-[#242424]">선택된 게시물</p>
-                                    <p className="text-xs text-[#707070]">
-                                        좋아요 {selectedPost.likeCount.toLocaleString()} · 댓글 {selectedPost.commentCount.toLocaleString()}
-                                    </p>
-                                </div>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setCurrentStep('select-post')}
-                                >
-                                    변경
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {/* Trigger Keywords */}
-                    <div>
-                        <label className="flex items-center gap-1.5 text-sm font-medium text-[#242424] mb-2">
-                            <Hash className="w-4 h-4 text-[#707070]" />
-                            트리거 키워드
-                        </label>
-                        <div className="flex flex-wrap gap-2 mb-2">
-                            {triggerKeywords.map((keyword) => (
-                                <span
-                                    key={keyword}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#f0f0f0] text-sm rounded-full"
-                                >
-                                    {keyword}
-                                    <button
-                                        onClick={() => handleRemoveKeyword(keyword)}
-                                        className="w-4 h-4 rounded-full hover:bg-[#e0e0e0] flex items-center justify-center"
-                                    >
-                                        ×
-                                    </button>
-                                </span>
-                            ))}
-                        </div>
-                        <div className="flex gap-2">
-                            <Input
-                                value={newKeyword}
-                                onChange={(e) => setNewKeyword(e.target.value)}
-                                placeholder="키워드 추가"
-                                className="flex-1"
-                                onKeyDown={(e) => e.key === 'Enter' && handleAddKeyword()}
-                            />
-                            <Button variant="outline" onClick={handleAddKeyword}>추가</Button>
-                        </div>
-                    </div>
-
-                    {/* Public Reply */}
-                    <div>
-                        <label className="flex items-center gap-1.5 text-sm font-medium text-[#242424] mb-2">
-                            <MessageSquare className="w-4 h-4 text-[#707070]" />
-                            공개 답글 (선택)
-                        </label>
-                        <Input
-                            value={publicReply}
-                            onChange={(e) => setPublicReply(e.target.value)}
-                            placeholder="예: 감사합니다! DM 확인해주세요 😊"
-                        />
-                        <p className="text-xs text-[#bbbbbb] mt-1">댓글에 자동으로 달리는 공개 답글입니다</p>
-                    </div>
-
-                    {/* DM Message */}
-                    <div>
-                        <label className="flex items-center gap-1.5 text-sm font-medium text-[#242424] mb-2">
-                            <MessageSquare className="w-4 h-4 text-[#707070]" />
-                            DM 메시지
-                        </label>
-                        <Textarea
-                            value={dmMessage}
-                            onChange={(e) => setDmMessage(e.target.value)}
-                            placeholder="자동으로 발송될 DM 메시지"
-                            rows={4}
-                        />
-                        <p className="text-xs text-[#bbbbbb] mt-1">본인의 말투에 맞게 수정할 수 있어요</p>
-                    </div>
-
-                    {/* CTA Link (Locked) */}
-                    <div>
-                        <label className="flex items-center gap-1.5 text-sm font-medium text-[#242424] mb-2">
-                            <Link className="w-4 h-4 text-[#707070]" />
-                            버튼 링크
-                            <Lock className="w-3.5 h-3.5 text-[#bbbbbb]" />
-                        </label>
-                        <div className="relative">
-                            <Input
-                                value={proposal.ctaLink}
-                                disabled
-                                className="bg-[#f5f5f5] text-[#707070] pr-10"
-                            />
-                            <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#bbbbbb]" />
-                        </div>
-                        <div className="flex items-start gap-1.5 mt-2 text-xs text-[#707070]">
-                            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                            <span>성과 측정을 위해 브랜드가 설정한 링크는 수정할 수 없습니다</span>
-                        </div>
+            <div className="h-full bg-[#fafafa] flex flex-col">
+                <div className="bg-white h-[60px] border-b border-[#f0f0f0] shrink-0">
+                    <div className="flex items-center h-full px-8">
+                        <button onClick={onBack} className="p-1 hover:bg-[#f5f5f5] rounded transition-colors mr-2">
+                            <ChevronLeft className="w-5 h-5 text-[#707070]" />
+                        </button>
+                        <X className="w-5 h-5 text-[#6b7280] mr-2" />
+                        <p className="font-medium text-base text-[#6b7280]">[거절됨] {proposal.campaignName}</p>
                     </div>
                 </div>
-
-                {/* Sticky CTA */}
-                <div className="p-4 border-t border-[#f0f0f0] bg-white">
-                    <Button
-                        className="w-full h-12 bg-[#5e51ff] hover:bg-[#5e51ff]/90 text-base font-medium"
-                        onClick={handleActivate}
-                    >
-                        자동화 시작하기
-                    </Button>
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                        <div className="w-16 h-16 bg-[#f3f4f6] rounded-full flex items-center justify-center mx-auto mb-4">
+                            <X className="w-8 h-8 text-[#9ca3af]" />
+                        </div>
+                        <p className="text-lg font-medium text-[#6b7280] mb-2">이 제안은 거절되었습니다</p>
+                        <p className="text-sm text-[#9ca3af]">{proposal.brandName} · {proposal.campaignName}</p>
+                    </div>
                 </div>
             </div>
         );
     }
 
-    // Step 4: Success
+    // Accepted/Active state: Show TemplateManagement with brand message accordion
+    const brandMessage = `${proposal.brandName} 캠페인에 참여해주셔서 감사합니다!\n\n📌 캠페인: ${proposal.campaignName}\n\n• DM 메시지는 자유롭게 수정 가능합니다.\n${proposal.isCtaLocked ? '• CTA 링크는 브랜드 정책에 따라 수정이 불가합니다. 🔒' : ''}\n• 게시물을 선택한 후 "활성화하기"를 눌러주세요.`;
+
     return (
-        <div className="flex flex-col h-full bg-white items-center justify-center p-6 text-center">
-            <div className="w-20 h-20 rounded-full bg-[#e8f5e9] flex items-center justify-center mb-6">
-                <Check className="w-10 h-10 text-[#4caf50]" />
-            </div>
-            <h1 className="text-xl font-medium text-[#242424] mb-2">
-                자동화가 시작되었습니다!
-            </h1>
-            <p className="text-sm text-[#707070] mb-8">
-                선택한 게시물에 댓글이 달리면<br />
-                자동으로 DM이 발송됩니다.
-            </p>
-            <Button
-                className="bg-[#5e51ff] hover:bg-[#5e51ff]/90"
-                onClick={onBack}
-            >
-                대시보드로 돌아가기
-            </Button>
-        </div>
+        <TemplateManagement
+            initialData={initialTemplateData}
+            automationGroup={{
+                id: proposal.id,
+                name: proposal.campaignName,
+                status: 'active',
+                influencerCount: 0,
+                templateStatus: 'draft',
+                lastModified: new Date().toISOString(),
+                createdAt: new Date().toISOString()
+            }}
+            onBack={onBack}
+            onSave={() => { }}
+            onDeploy={(template) => {
+                if (template.postData?.id) {
+                    onActivate(proposal.id, template.postData.id, {
+                        triggerKeywords: template.triggerKeywords,
+                        publicReplyTexts: template.publicReplyTexts,
+                        dmMessage: template.dmGuide
+                    });
+                } else {
+                    alert("게시물을 선택해주세요.");
+                }
+            }}
+            mode="proposal"
+            isCtaLocked={proposal.isCtaLocked}
+            brandName={proposal.brandName}
+            brandMessage={brandMessage}
+            context="campaign"
+        />
     );
 }

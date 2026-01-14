@@ -12,7 +12,8 @@ export interface CampaignProposal {
     publicReplyTexts: string[];
     dmMessage: string;
     ctaButtonText: string;
-    ctaLink: string;  // Locked - cannot be edited by influencer
+    ctaLink: string;
+    isCtaLocked: boolean;  // Brand can lock the CTA link
 
     // Status
     status: 'pending' | 'accepted' | 'active' | 'completed' | 'rejected';
@@ -24,9 +25,15 @@ export interface CampaignProposal {
     selectedPostId?: string;
     selectedPostThumbnail?: string;
 
-    // Performance (after activation)
-    executions?: number;
-    ctr?: string;
+    // Customized message (influencer can edit)
+    customizedMessage?: string;
+
+    // Performance (synced with B2B)
+    performance?: {
+        sentCount: number;
+        clickCount: number;
+        ctr: string;
+    };
 }
 
 // Instagram Post for selection

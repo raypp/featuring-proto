@@ -13,6 +13,8 @@ import { Layout } from "./components/Layout";
 import { DMTemplate } from "./types/DMTemplate";
 import { CampaignProposal, InstagramPost } from "./types/CampaignProposal";
 import { Campaign } from "./types/Campaign";
+import { ServiceSwitcherBar } from "../design-system";
+import { ConnectedAccount } from "../shared";
 
 // Helper function to get current date in YYYY.MM.DD format
 function getCurrentDateString() {
@@ -286,21 +288,22 @@ const MOCK_TEMPLATES: DMTemplate[] = [
   }
 ];
 
-// Mock Campaign Proposals (from B2B brands)
+// Mock Campaign Proposals (from B2B brands) - Track A: Dyson 캠페인
 const MOCK_PROPOSALS: CampaignProposal[] = [
   {
     id: 1,
-    brandName: '다이슨 코리아',
+    brandName: '다이슨',
     brandLogo: 'https://images.unsplash.com/photo-1560472355-536de3962603?w=100&h=100&fit=crop',
-    campaignName: '에어랩 멀티 스타일러 프로모션',
+    campaignName: '2026 에어랩 런칭 캠페인',
     templateId: 101,
-    triggerKeywords: ['이벤트', '참여', '링크'],
+    triggerKeywords: ['에어랩', '참여', '이벤트'],
     publicReplyTexts: ['감사합니다! DM 확인해주세요 😊'],
-    dmMessage: '안녕하세요! 다이슨 코리아입니다.\n\n이번에 새롭게 출시된 에어랩 멀티 스타일러를 소개해 드려고 해요!\n\n아래 링크에서 특별 할인가로 만나보세요 ✨',
-    ctaButtonText: '특별 할인 받기',
-    ctaLink: 'https://featuring.link/dyson-campaign-2024',
-    status: 'pending',
-    receivedAt: '2024-03-20'
+    dmMessage: '안녕하세요! 다이슨 2026 에어랩 런칭 이벤트에 참여해주셔서 감사합니다. 🎁',
+    ctaButtonText: '쿠폰 받기',
+    ctaLink: 'https://dyson.co.kr/promo',
+    isCtaLocked: true,
+    status: 'pending',  // Just arrived - not yet accepted
+    receivedAt: '2026-01-14'
   }
 ];
 
@@ -314,8 +317,14 @@ const MOCK_INSTAGRAM_POSTS: InstagramPost[] = [
   { id: 'post6', thumbnailUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&h=300&fit=crop', mediaType: 'IMAGE', likeCount: 620, commentCount: 18, postedAt: '2024-03-05' },
 ];
 
-export default function App() {
-  const [isConnected, setIsConnected] = useState(false);
+interface AppProps {
+  onSwitchService?: (service: "studio" | "response") => void;
+  connectedAccount: ConnectedAccount | null;
+  onConnect: () => void;
+  onDisconnect: () => void;
+}
+
+export default function App({ onSwitchService, connectedAccount, onConnect, onDisconnect }: AppProps) {
   const [currentView, setCurrentView] = useState('home');
   const [selectedAutomation, setSelectedAutomation] = useState<Automation | undefined>(undefined);
   const [automations, setAutomations] = useState<Automation[]>(MOCK_AUTOMATIONS);
@@ -336,11 +345,11 @@ export default function App() {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | undefined>(undefined);
 
   const handleConnect = () => {
-    setIsConnected(true);
+    onConnect();
   };
 
   const handleLogout = () => {
-    setIsConnected(false);
+    onDisconnect();
     setCurrentView('dashboard');
   };
 
@@ -476,149 +485,199 @@ export default function App() {
   };
 
   const handleActivateProposal = (proposalId: number, postId: string, editedData: Partial<CampaignProposal>) => {
+    const activatedProposal = proposals.find(p => p.id === proposalId);
+    if (activatedProposal) {
+      const updatedProposal = {
+        ...activatedProposal,
+        ...editedData,
+        status: 'active' as const,
+        selectedPostId: postId,
+        activatedAt: getCurrentDateString(),
+        // Initialize performance data
+        performance: {
+          sentCount: 0,
+          clickCount: 0,
+          ctr: '0%'
+        }
+      };
+      setProposals(prev => prev.map(p => p.id === proposalId ? updatedProposal : p));
+      setSelectedProposal(undefined);
+      setCurrentView('dashboard');  // Navigate back to dashboard
+      console.log('Proposal activated:', proposalId, postId, editedData);
+    }
+  };
+
+  // Accept proposal - moves to 'accepted' state (can edit and then activate)
+  const handleAcceptProposal = (proposalId: number) => {
+    const updatedProposal = proposals.find(p => p.id === proposalId);
+    if (updatedProposal) {
+      const acceptedProposal = {
+        ...updatedProposal,
+        status: 'accepted' as const,
+        acceptedAt: getCurrentDateString()
+      };
+      setProposals(prev => prev.map(p => p.id === proposalId ? acceptedProposal : p));
+      setSelectedProposal(acceptedProposal);  // Update selected proposal so view changes
+    }
+  };
+
+  // Reject proposal - moves to 'rejected' state (archived)
+  const handleRejectProposal = (proposalId: number) => {
     setProposals(prev => prev.map(p => {
       if (p.id === proposalId) {
         return {
           ...p,
-          ...editedData,
-          status: 'active' as const,
-          selectedPostId: postId,
-          activatedAt: getCurrentDateString()
+          status: 'rejected' as const
         };
       }
       return p;
     }));
-    console.log('Proposal activated:', proposalId, postId, editedData);
+    setCurrentView('dashboard');
+    setSelectedProposal(undefined);
   };
 
-  if (!isConnected) {
-    return <ConnectAccount onConnect={handleConnect} />;
-  }
+  // Check if there are pending proposals for GNB notification
+  const hasPendingProposal = proposals.some(p => p.status === 'pending');
+
+  const renderContent = () => {
+    if (!connectedAccount) {
+      return <ConnectAccount onConnect={handleConnect} />;
+    }
+
+    return (
+      <Layout
+        currentView={currentView}
+        onChangeView={setCurrentView}
+        onLogout={handleLogout}
+        hasPendingProposal={hasPendingProposal}
+      >
+        {(currentView === 'home' || currentView === 'dashboard') && (
+          <Dashboard
+            onNavigate={(view: string) => {
+              if (view === 'create-automation') {
+                handleCreateNew();
+              } else {
+                setCurrentView(view);
+              }
+            }}
+            onAutomationClick={handleAutomationClick}
+            recentAutomations={automations.filter(a => !a.campaignId).slice(0, 5)}
+            onToggleStatus={handleToggleStatus}
+            onMenuAction={(id: number, action: 'edit' | 'delete' | 'template') => {
+              if (action === 'template') {
+                handleOpenTemplateManagement(id);
+              } else if (action === 'edit') {
+                handleAutomationClick(id);
+              } else if (action === 'delete') {
+                console.log('Delete automation:', id);
+              }
+            }}
+            proposals={proposals.filter(p => p.status === 'pending')}
+            onProposalClick={handleProposalClick}
+          />
+        )}
+        {currentView === 'my-automations' && (
+          <MyAutomationsPage
+            automations={automations}
+            onCreateNew={handleCreateNew}
+            onAutomationClick={handleAutomationClick}
+            onToggleStatus={handleToggleStatus}
+            onMenuAction={(id: number, action: 'edit' | 'delete' | 'template') => {
+              if (action === 'template') {
+                handleOpenTemplateManagement(id);
+              } else if (action === 'edit') {
+                handleAutomationClick(id);
+              }
+            }}
+            onNavigate={setCurrentView}
+          />
+        )}
+        {currentView === 'campaigns' && (
+          <CampaignsPage
+            proposals={proposals}
+            onProposalClick={handleProposalClick}
+          />
+        )}
+        {currentView === 'campaign-detail' && selectedCampaign && (
+          <CampaignDetail
+            campaign={selectedCampaign}
+            onBack={() => {
+              setCurrentView('campaigns');
+              setSelectedCampaign(undefined);
+            }}
+            onSetupAutomation={(campaignId: number) => {
+              const proposal = proposals.find(p => p.id === campaignId);
+              if (proposal) {
+                setSelectedProposal(proposal);
+                setCurrentView('proposal-detail');
+              }
+            }}
+          />
+        )}
+        {currentView === 'create-automation' && (
+          <AutomationDetail
+            initialData={selectedAutomation}
+            onBack={() => {
+              setCurrentView('my-automations');
+              setSelectedAutomation(undefined);
+            }}
+            onSave={handleSaveAutomation}
+            usedPostIds={
+              // 현재 편집 중인 자동화를 제외한 다른 자동화들에서 사용 중인 게시물 ID 목록
+              automations
+                .filter(a => a.id !== selectedAutomation?.id)
+                .flatMap(a => a.trigger.postIds)
+            }
+          />
+        )}
+        {currentView === 'logs' && (
+          <LogsPage />
+        )}
+        {currentView === 'account-settings' && (
+          <AccountSettings onLogout={handleLogout} />
+        )}
+        {currentView === 'template-management' && selectedAutomationGroup && (
+          <TemplateManagement
+            initialData={selectedTemplate}
+            automationGroupId={selectedAutomationGroup.id}
+            automationGroupName={selectedAutomationGroup.name}
+            onBack={() => {
+              setCurrentView('dashboard');
+              setSelectedTemplate(undefined);
+              setSelectedAutomationGroup(undefined);
+            }}
+            onSave={handleSaveTemplate}
+            onDeploy={handleDeployTemplate}
+          />
+        )}
+        {currentView === 'proposal-detail' && selectedProposal && (
+          <ProposalDetail
+            proposal={selectedProposal}
+            posts={MOCK_INSTAGRAM_POSTS}
+            onBack={() => {
+              setCurrentView('dashboard');
+              setSelectedProposal(undefined);
+            }}
+            onActivate={handleActivateProposal}
+            onAccept={handleAcceptProposal}
+            onReject={handleRejectProposal}
+          />
+        )}
+      </Layout>
+    );
+  };
 
   return (
-    <Layout
-      currentView={currentView}
-      onChangeView={setCurrentView}
-      onLogout={handleLogout}
-    >
-      {(currentView === 'home' || currentView === 'dashboard') && (
-        <Dashboard
-          onNavigate={(view: string) => {
-            if (view === 'create-automation') {
-              handleCreateNew();
-            } else {
-              setCurrentView(view);
-            }
-          }}
-          onAutomationClick={handleAutomationClick}
-          recentAutomations={automations.filter(a => !a.campaignId).slice(0, 5)}
-          onToggleStatus={handleToggleStatus}
-          onMenuAction={(id: number, action: 'edit' | 'delete' | 'template') => {
-            if (action === 'template') {
-              handleOpenTemplateManagement(id);
-            } else if (action === 'edit') {
-              handleAutomationClick(id);
-            } else if (action === 'delete') {
-              console.log('Delete automation:', id);
-            }
-          }}
-          proposals={proposals.filter(p => p.status === 'pending')}
-          onProposalClick={handleProposalClick}
+    <div className="flex flex-col h-screen w-full overflow-hidden">
+      <div className="flex-1 w-full overflow-hidden relative">
+        {renderContent()}
+      </div>
+      {onSwitchService && (
+        <ServiceSwitcherBar
+          currentService="studio"
+          onSwitchService={onSwitchService}
         />
       )}
-      {currentView === 'my-automations' && (
-        <MyAutomationsPage
-          automations={automations}
-          onCreateNew={handleCreateNew}
-          onAutomationClick={handleAutomationClick}
-          onToggleStatus={handleToggleStatus}
-          onMenuAction={(id: number, action: 'edit' | 'delete' | 'template') => {
-            if (action === 'template') {
-              handleOpenTemplateManagement(id);
-            } else if (action === 'edit') {
-              handleAutomationClick(id);
-            }
-          }}
-          onNavigate={setCurrentView}
-        />
-      )}
-      {currentView === 'campaigns' && (
-        <CampaignsPage
-          campaigns={campaigns}
-          proposals={proposals}
-          onCampaignClick={(id: number) => {
-            const campaign = campaigns.find(c => c.id === id);
-            if (campaign) {
-              setSelectedCampaign(campaign);
-              setCurrentView('campaign-detail');
-            }
-          }}
-          onProposalClick={handleProposalClick}
-        />
-      )}
-      {currentView === 'campaign-detail' && selectedCampaign && (
-        <CampaignDetail
-          campaign={selectedCampaign}
-          onBack={() => {
-            setCurrentView('campaigns');
-            setSelectedCampaign(undefined);
-          }}
-          onSetupAutomation={(campaignId: number) => {
-            const proposal = proposals.find(p => p.id === campaignId);
-            if (proposal) {
-              setSelectedProposal(proposal);
-              setCurrentView('proposal-detail');
-            }
-          }}
-        />
-      )}
-      {currentView === 'create-automation' && (
-        <AutomationDetail
-          initialData={selectedAutomation}
-          onBack={() => {
-            setCurrentView('my-automations');
-            setSelectedAutomation(undefined);
-          }}
-          onSave={handleSaveAutomation}
-          usedPostIds={
-            // 현재 편집 중인 자동화를 제외한 다른 자동화들에서 사용 중인 게시물 ID 목록
-            automations
-              .filter(a => a.id !== selectedAutomation?.id)
-              .flatMap(a => a.trigger.postIds)
-          }
-        />
-      )}
-      {currentView === 'logs' && (
-        <LogsPage />
-      )}
-      {currentView === 'account-settings' && (
-        <AccountSettings onLogout={handleLogout} />
-      )}
-      {currentView === 'template-management' && selectedAutomationGroup && (
-        <TemplateManagement
-          initialData={selectedTemplate}
-          automationGroupId={selectedAutomationGroup.id}
-          automationGroupName={selectedAutomationGroup.name}
-          onBack={() => {
-            setCurrentView('dashboard');
-            setSelectedTemplate(undefined);
-            setSelectedAutomationGroup(undefined);
-          }}
-          onSave={handleSaveTemplate}
-          onDeploy={handleDeployTemplate}
-        />
-      )}
-      {currentView === 'proposal-detail' && selectedProposal && (
-        <ProposalDetail
-          proposal={selectedProposal}
-          posts={MOCK_INSTAGRAM_POSTS}
-          onBack={() => {
-            setCurrentView('campaigns');
-            setSelectedProposal(undefined);
-          }}
-          onActivate={handleActivateProposal}
-        />
-      )}
-    </Layout>
+    </div>
   );
 }

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Layout } from "./components/Layout";
+import { ServiceSwitcherBar } from "../design-system";
+import { ConnectedAccount } from "../shared";
 import { Dashboard } from "./pages/Dashboard";
 import { AutomationGroupList } from "./pages/AutomationGroupList";
 import { AutomationGroupDetail } from "./pages/AutomationGroupDetail";
@@ -305,6 +307,26 @@ const MOCK_CAMPAIGN_INFLUENCERS: CampaignInfluencer[] = [
         contentReceivedDate: "25.01.9",
         cpvPerformance: "55.8%",
         guideDelivered: true
+    },
+    // sojumanjan - Dyson campaign influencer with synced performance data
+    {
+        id: 9,
+        username: "sojumanjan",
+        displayName: "소주만잔",
+        profileImage: "",
+        category: "뷰티",
+        task: "피드+스토리/릴스",
+        aiReachPrediction: 50000,
+        hasCustomRequirements: false,
+        contentUsageApproved: true,
+        contractSent: true,
+        followerCount: 50000,
+        contentReachCount: 45000,
+        totalContentCost: 800000,
+        contentReceivedDate: "26.01.14",
+        cpvPerformance: "30.0%",
+        guideDelivered: true,
+        contentUrl: "https://www.instagram.com/p/airwrap2026"
     }
 ];
 
@@ -398,9 +420,11 @@ const MOCK_CAMPAIGN_CONTENTS: CampaignContent[] = [
 
 interface FeaturingAppProps {
     onBackToServiceSelector?: () => void;
+    onSwitchService?: (service: "studio" | "response") => void;
+    connectedAccount: ConnectedAccount | null;
 }
 
-export default function FeaturingApp({ onBackToServiceSelector }: FeaturingAppProps) {
+export default function FeaturingApp({ onBackToServiceSelector, onSwitchService, connectedAccount }: FeaturingAppProps) {
     const [currentView, setCurrentView] = useState('dashboard');
     const [automationGroups, setAutomationGroups] = useState<AutomationGroup[]>(MOCK_AUTOMATION_GROUPS);
     const [templates, setTemplates] = useState<DMTemplate[]>(MOCK_TEMPLATES);
@@ -506,6 +530,7 @@ export default function FeaturingApp({ onBackToServiceSelector }: FeaturingAppPr
                     <Dashboard
                         automationGroups={automationGroups}
                         onNavigate={handleNavigate}
+                        connectedAccount={connectedAccount}
                     />
                 );
 
@@ -653,18 +678,34 @@ export default function FeaturingApp({ onBackToServiceSelector }: FeaturingAppPr
         }
     };
 
-    // Template management uses full screen without sidebar
-    if (currentView === 'template-management') {
-        return renderContent();
-    }
+    const renderLayout = () => {
+        // Template management uses full screen without sidebar
+        if (currentView === 'template-management') {
+            return renderContent();
+        }
+
+        return (
+            <Layout
+                currentView={currentView}
+                onChangeView={handleNavigate}
+                onBackToServiceSelector={onBackToServiceSelector}
+            >
+                {renderContent()}
+            </Layout>
+        );
+    };
 
     return (
-        <Layout
-            currentView={currentView}
-            onChangeView={handleNavigate}
-            onBackToServiceSelector={onBackToServiceSelector}
-        >
-            {renderContent()}
-        </Layout>
+        <div className="flex flex-col h-screen w-screen overflow-hidden">
+            <div className="flex-1 w-full overflow-hidden relative">
+                {renderLayout()}
+            </div>
+            {onSwitchService && (
+                <ServiceSwitcherBar
+                    currentService="response"
+                    onSwitchService={onSwitchService}
+                />
+            )}
+        </div>
     );
 }
