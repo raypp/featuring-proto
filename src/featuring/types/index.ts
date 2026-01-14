@@ -10,6 +10,7 @@ export interface AutomationGroup {
     templateStatus: 'none' | 'draft' | 'saved' | 'deployed';
     lastModified: string;
     createdAt: string;
+    linkedCampaignId?: number;  // Links to Campaign.id
 }
 
 // CTA 링크
@@ -80,6 +81,7 @@ export interface Campaign {
     platform?: 'instagram' | 'tiktok' | 'youtube';
     createdAt: string;
     lastModified: string;
+    reactionAutomationGroupId?: number;  // Links to AutomationGroup.id
 }
 
 // 캠페인 인플루언서

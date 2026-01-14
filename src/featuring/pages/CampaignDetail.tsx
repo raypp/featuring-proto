@@ -788,69 +788,111 @@ export function CampaignDetail({ campaign, influencers, contents, reactionAutoma
                 {/* Reaction Automation Tab */}
                 {activeTab === 'reaction-automation' && (
                     <div className="space-y-6">
-                        {/* Template Summary Card */}
-                        <div
-                            className="bg-[var(--ft-bg-primary)] rounded-[var(--ft-radius-lg)] border border-[var(--ft-border-primary)] p-6 cursor-pointer hover:border-[var(--ft-color-primary-300)] transition-colors"
-                            onClick={onEditReactionAutomation}
-                        >
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-[var(--ft-radius-md)] bg-[var(--ft-color-orange-50)] flex items-center justify-center">
-                                        <Zap className="w-5 h-5 text-[var(--ft-color-orange-500)]" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-base font-semibold text-[var(--ft-text-primary)]">
-                                            {reactionAutomation?.name || '새 반응 자동화'}
-                                        </h3>
-                                        <p className="text-xs text-[var(--ft-text-disabled)]">템플릿 설정</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <CoreStatusBadge
-                                        colorType={
-                                            reactionAutomation?.status === 'running' ? 'success' :
-                                                reactionAutomation?.status === 'stopped' ? 'warning' : 'default'
-                                        }
-                                        type="tint"
-                                        size="sm"
-                                    >
-                                        {reactionAutomation?.status === 'running' ? '실행 중' :
-                                            reactionAutomation?.status === 'stopped' ? '중지됨' : '초안'}
-                                    </CoreStatusBadge>
-                                    <ChevronRight className="w-5 h-5 text-[var(--ft-text-disabled)]" />
-                                </div>
-                            </div>
+                        {/* Template Summary Card - Enhanced Clickable UI */}
+                        {(() => {
+                            const isConfigured = reactionAutomation?.message && reactionAutomation?.triggerKeywords?.length > 0;
+                            const isRunning = reactionAutomation?.status === 'running';
+                            const isStopped = reactionAutomation?.status === 'stopped';
 
-                            {/* Summary Grid */}
-                            <div className="grid grid-cols-4 gap-4 p-4 bg-[var(--ft-bg-secondary)] rounded-[var(--ft-radius-md)]">
-                                <div>
-                                    <p className="text-xs text-[var(--ft-text-disabled)] mb-1">트리거</p>
-                                    <p className="text-sm text-[var(--ft-text-primary)]">
-                                        {reactionAutomation?.triggerType === 'comment_keyword' ? '댓글 키워드' :
-                                            reactionAutomation?.triggerType === 'dm_keyword' ? 'DM 키워드' :
-                                                reactionAutomation?.triggerType === 'story_mention' ? '스토리 멘션' : '댓글 키워드'}
-                                    </p>
+                            return (
+                                <div
+                                    className={`rounded-[var(--ft-radius-lg)] border-2 transition-all cursor-pointer group ${!isConfigured
+                                            ? 'border-dashed border-[var(--ft-color-orange-300)] bg-gradient-to-r from-[var(--ft-color-orange-50)] to-[var(--ft-bg-primary)] hover:border-[var(--ft-color-orange-500)] hover:shadow-lg hover:shadow-orange-100'
+                                            : isRunning
+                                                ? 'border-[var(--ft-color-success-300)] bg-[var(--ft-bg-primary)] hover:border-[var(--ft-color-success-500)] hover:shadow-lg hover:shadow-green-100'
+                                                : 'border-[var(--ft-border-primary)] bg-[var(--ft-bg-primary)] hover:border-[var(--ft-color-primary-400)] hover:shadow-lg hover:shadow-purple-100'
+                                        }`}
+                                    onClick={onEditReactionAutomation}
+                                >
+                                    {/* Setup Alert Banner - Only show when not configured */}
+                                    {!isConfigured && (
+                                        <div className="px-6 py-3 bg-gradient-to-r from-[var(--ft-color-orange-100)] to-[var(--ft-color-orange-50)] border-b border-[var(--ft-color-orange-200)] flex items-center gap-3">
+                                            <div className="w-6 h-6 rounded-full bg-[var(--ft-color-orange-500)] flex items-center justify-center animate-pulse">
+                                                <span className="text-white text-sm">!</span>
+                                            </div>
+                                            <p className="text-sm font-medium text-[var(--ft-color-orange-700)]">
+                                                템플릿 설정이 필요합니다. 클릭하여 설정을 완료해주세요.
+                                            </p>
+                                            <ChevronRight className="w-5 h-5 text-[var(--ft-color-orange-500)] ml-auto group-hover:translate-x-1 transition-transform" />
+                                        </div>
+                                    )}
+
+                                    <div className="p-6">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${isRunning
+                                                        ? 'bg-gradient-to-br from-[var(--ft-color-success-100)] to-[var(--ft-color-success-200)]'
+                                                        : 'bg-gradient-to-br from-[var(--ft-color-orange-100)] to-[var(--ft-color-orange-200)]'
+                                                    }`}>
+                                                    <Zap className={`w-6 h-6 ${isRunning ? 'text-[var(--ft-color-success-600)]' : 'text-[var(--ft-color-orange-600)]'}`} />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-semibold text-[var(--ft-text-primary)] flex items-center gap-2">
+                                                        {reactionAutomation?.name || '반응 자동화'}
+                                                        {isRunning && (
+                                                            <span className="w-2 h-2 rounded-full bg-[var(--ft-color-success-500)] animate-pulse" />
+                                                        )}
+                                                    </h3>
+                                                    <p className="text-sm text-[var(--ft-text-secondary)]">
+                                                        {isConfigured ? '클릭하여 설정 수정' : '템플릿 설정이 필요합니다'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <CoreStatusBadge
+                                                    colorType={
+                                                        isRunning ? 'success' :
+                                                            isStopped ? 'warning' :
+                                                                !isConfigured ? 'error' : 'default'
+                                                    }
+                                                    type="tint"
+                                                    size="md"
+                                                >
+                                                    {isRunning ? '🟢 실행 중' :
+                                                        isStopped ? '⏸️ 중지됨' :
+                                                            !isConfigured ? '⚠️ 설정 필요' : '📝 초안'}
+                                                </CoreStatusBadge>
+                                                <div className="w-10 h-10 rounded-full bg-[var(--ft-bg-secondary)] flex items-center justify-center group-hover:bg-[var(--ft-color-primary-100)] transition-colors">
+                                                    <ChevronRight className="w-5 h-5 text-[var(--ft-text-disabled)] group-hover:text-[var(--ft-color-primary-600)] group-hover:translate-x-0.5 transition-all" />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Summary Grid */}
+                                        <div className="grid grid-cols-4 gap-4 p-4 bg-[var(--ft-bg-secondary)] rounded-xl border border-[var(--ft-border-secondary)]">
+                                            <div className="space-y-1">
+                                                <p className="text-xs font-medium text-[var(--ft-text-disabled)] uppercase tracking-wide">트리거</p>
+                                                <p className="text-sm font-medium text-[var(--ft-text-primary)]">
+                                                    {reactionAutomation?.triggerType === 'comment_keyword' ? '💬 댓글 키워드' :
+                                                        reactionAutomation?.triggerType === 'dm_keyword' ? '📩 DM 키워드' :
+                                                            reactionAutomation?.triggerType === 'story_mention' ? '📸 스토리 멘션' : '💬 댓글 키워드'}
+                                                </p>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-xs font-medium text-[var(--ft-text-disabled)] uppercase tracking-wide">키워드</p>
+                                                <p className={`text-sm font-medium truncate ${reactionAutomation?.triggerKeywords?.length ? 'text-[var(--ft-text-primary)]' : 'text-[var(--ft-color-orange-500)]'}`}>
+                                                    {reactionAutomation?.triggerKeywords?.length
+                                                        ? reactionAutomation.triggerKeywords.slice(0, 3).join(', ') + (reactionAutomation.triggerKeywords.length > 3 ? '...' : '')
+                                                        : '⚠️ 설정 필요'}
+                                                </p>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-xs font-medium text-[var(--ft-text-disabled)] uppercase tracking-wide">메시지</p>
+                                                <p className={`text-sm font-medium truncate ${reactionAutomation?.message ? 'text-[var(--ft-text-primary)]' : 'text-[var(--ft-color-orange-500)]'}`}>
+                                                    {reactionAutomation?.message || '⚠️ 설정 필요'}
+                                                </p>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-xs font-medium text-[var(--ft-text-disabled)] uppercase tracking-wide">링크</p>
+                                                <p className="text-sm font-medium text-[var(--ft-text-primary)] truncate">
+                                                    {reactionAutomation?.linkUrl || '-'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-xs text-[var(--ft-text-disabled)] mb-1">키워드</p>
-                                    <p className="text-sm text-[var(--ft-text-primary)] truncate">
-                                        {reactionAutomation?.triggerKeywords?.join(', ') || '가격, 구매, 링크'}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-[var(--ft-text-disabled)] mb-1">메시지</p>
-                                    <p className="text-sm text-[var(--ft-text-primary)] truncate">
-                                        {reactionAutomation?.message || '메시지를 설정해주세요'}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-[var(--ft-text-disabled)] mb-1">링크</p>
-                                    <p className="text-sm text-[var(--ft-text-primary)] truncate">
-                                        {reactionAutomation?.linkUrl || '-'}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                            );
+                        })()}
 
                         {/* Influencer Performance Table */}
                         <div className="bg-[var(--ft-bg-primary)] rounded-[var(--ft-radius-lg)] border border-[var(--ft-border-primary)]">

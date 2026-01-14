@@ -14,13 +14,14 @@ import { AutomationGroup, DMTemplate, Campaign, CampaignInfluencer, CampaignCont
 const MOCK_AUTOMATION_GROUPS: AutomationGroup[] = [
     {
         id: 1,
-        name: "여름 시즌 캠페인",
-        description: "2024 여름 신제품 홍보 캠페인",
+        name: "다이슨 에어랩 캠페인",
+        description: "2026 다이슨 에어랩 멀티 스타일러 반응 자동화",
         status: "active",
-        influencerCount: 15,
+        influencerCount: 12,
         templateStatus: "deployed",
-        lastModified: "2024-03-15",
-        createdAt: "2024-02-01"
+        lastModified: "2026-01-14",
+        createdAt: "2026-01-10",
+        linkedCampaignId: 1  // Links to MOCK_CAMPAIGNS[0]
     },
     {
         id: 2,
@@ -103,7 +104,8 @@ const MOCK_CAMPAIGNS: Campaign[] = [
         budget: 15000000,
         platform: "tiktok",
         createdAt: "2024-02-01",
-        lastModified: "2024-03-15"
+        lastModified: "2024-03-15",
+        reactionAutomationGroupId: 1  // Links to MOCK_AUTOMATION_GROUPS[0]
     },
     {
         id: 2,
@@ -437,12 +439,57 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
     const [reactionAutomationContext, setReactionAutomationContext] = useState<{ context: 'global' | 'campaign'; campaignId?: number; campaignName?: string } | null>(null);
     const [reactionAutomationMode, setReactionAutomationMode] = useState<'view' | 'edit'>('view');
 
-    // Mock automation influencers for both contexts
-    const mockAutomationInfluencers: AutomationInfluencer[] = (selectedCampaignId || selectedGroupId) ? [
-        { id: 1, influencerId: 1, username: 'beauty_dahyun', displayName: '티 다현', status: 'clicked', sentCount: 120, clickCount: 45, cpv: 28, cpe: 150, isConnected: true },
-        { id: 2, influencerId: 2, username: 'lifestyle_mina', displayName: '라이프 미나', status: 'read', sentCount: 85, clickCount: 22, cpv: 35, cpe: 180, isConnected: false },
-        { id: 3, influencerId: 3, username: 'fashion_jisoo', displayName: '패션 지수', status: 'sent', sentCount: 50, clickCount: 8, cpv: 45, cpe: 220, isConnected: true },
-    ] : [];
+    // Mock automation influencers - derives from campaign influencers if linked
+    const getAutomationInfluencers = (): AutomationInfluencer[] => {
+        // If we are in a campaign context (viewing campaign detail or automation from campaign)
+        if (selectedCampaignId) {
+            return campaignInfluencers.map(inf => ({
+                id: inf.id,
+                influencerId: inf.id,
+                username: inf.username,
+                displayName: inf.displayName,
+                profileImage: inf.profileImage || '',
+                status: 'delivered' as const, // Default status for campaign view
+                sentCount: 0,
+                clickCount: 0,
+                cpv: 0,
+                cpe: 0,
+                isConnected: true
+            }));
+        }
+
+        // If we are in an automation group context
+        if (selectedGroupId) {
+            const group = automationGroups.find(g => g.id === selectedGroupId);
+            // If the group is linked to a campaign (e.g., Dyson campaign)
+            if (group?.linkedCampaignId) {
+                // In a real app, we would filter by campaign ID. Here we use the shared mock data.
+                // Assuming MOCK_CAMPAIGN_INFLUENCERS belongs to the linked campaign.
+                return campaignInfluencers.map(inf => ({
+                    id: inf.id,
+                    influencerId: inf.id,
+                    username: inf.username,
+                    displayName: inf.displayName,
+                    profileImage: inf.profileImage || '',
+                    status: 'clicked' as const, // Mock status for automation view
+                    sentCount: Math.floor(Math.random() * 100),
+                    clickCount: Math.floor(Math.random() * 50),
+                    cpv: Math.floor(Math.random() * 50),
+                    cpe: Math.floor(Math.random() * 200),
+                    isConnected: true
+                }));
+            }
+        }
+
+        // Fallback or unlinked groups
+        return [
+            { id: 1, influencerId: 1, username: 'beauty_dahyun', displayName: '뷰티 다현', status: 'clicked' as const, sentCount: 120, clickCount: 45, cpv: 28, cpe: 150, isConnected: true },
+            { id: 2, influencerId: 2, username: 'lifestyle_mina', displayName: '라이프 미나', status: 'read' as const, sentCount: 85, clickCount: 22, cpv: 35, cpe: 180, isConnected: false },
+            { id: 3, influencerId: 3, username: 'fashion_jisoo', displayName: '패션 지수', status: 'sent' as const, sentCount: 50, clickCount: 8, cpv: 45, cpe: 220, isConnected: true },
+        ];
+    };
+
+    const mockAutomationInfluencers = getAutomationInfluencers();
 
     // Extract group ID from view string like "automation-group-detail-1"
     const getGroupIdFromView = (view: string): number | null => {
@@ -568,6 +615,39 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
                         campaign={selectedCampaign}
                         influencers={campaignInfluencers}
                         contents={campaignContents}
+                        reactionAutomation={
+                            selectedCampaign.reactionAutomationGroupId
+                                ? (() => {
+                                    const group = automationGroups.find(g => g.id === selectedCampaign.reactionAutomationGroupId);
+                                    const template = templates.find(t => t.automationGroupId === selectedCampaign.reactionAutomationGroupId);
+                                    if (group && template) {
+                                        return {
+                                            id: group.id,
+                                            name: group.name,
+                                            status: group.status === 'active' ? 'running' as const : 'draft' as const,
+                                            triggerType: 'comment_keyword' as const,
+                                            triggerKeywords: template.triggerKeywords || ['가격', '구매', '링크'],
+                                            message: template.dmGuide || '',
+                                            linkUrl: template.ctaLinks?.[0]?.url || '',
+                                            createdAt: group.createdAt,
+                                            lastModified: group.lastModified
+                                        };
+                                    }
+                                    return undefined;
+                                })()
+                                : undefined
+                        }
+                        automationInfluencers={campaignInfluencers.map(inf => ({
+                            id: inf.id,
+                            influencerId: inf.id,
+                            username: inf.username,
+                            displayName: inf.displayName,
+                            profileImage: inf.profileImage || '',
+                            status: 'delivered' as const,
+                            sentCount: 0,
+                            clickCount: 0,
+                            isConnected: true
+                        }))}
                         onBack={() => handleNavigate('campaign')}
                         onEdit={() => console.log('Edit campaign')}
                         onAddReactionAutomation={() => {
