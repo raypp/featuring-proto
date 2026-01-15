@@ -527,7 +527,7 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
                         isConnected: true,
 
                         // New Analytics Fields
-                        isTemplateShared: inf.id % 2 === 0, // Mock 50% shared
+                        isTemplateShared: true, // Mark as shared so they show up as "applied"
                         likes: Math.floor(uniqueReach * 0.1),
                         comments: Math.floor(uniqueReach * 0.01),
                         saves: Math.floor(uniqueReach * 0.02),

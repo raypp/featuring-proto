@@ -180,6 +180,19 @@ export interface AutomationInfluencer {
     isConnected: boolean;
     lastSentAt?: string;
 
+    // Custom Settings for Setup Tab
+    customUrl?: string; // Can be deprecated or aliased to button1Url if needed
+    hasCustomSettings?: boolean;
+    productApplicationUrl?: string;
+
+    // Advanced Automation Fields
+    automationStatus?: 'draft' | 'pending' | 'active' | 'updating' | 'rejected';
+    button1Url?: string;
+    button2Url?: string;
+    button3Url?: string;
+    reviewStatus?: 'default' | 'custom' | 'modified';
+    isLinkLocked?: boolean; // 상품 신청서 URL
+
     // Extended Analytics
     isTemplateShared: boolean;
     likes?: number;
