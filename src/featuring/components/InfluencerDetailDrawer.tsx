@@ -1,16 +1,16 @@
-
-import { X, Lock, Unlock, ExternalLink, RefreshCw, AlertTriangle, FileText, Send } from "lucide-react";
-import { AutomationInfluencer } from "../types";
+import { X, Lock, Unlock, ExternalLink, RefreshCw, AlertTriangle, FileText, Send, MessageSquare, Image as ImageIcon } from "lucide-react";
+import { AutomationInfluencer, DMTemplate } from "../types";
 import { CoreButton, CoreStatusBadge, CoreAvatar } from "../../design-system";
 
 interface InfluencerDetailDrawerProps {
     isOpen: boolean;
     onClose: () => void;
     influencer: AutomationInfluencer | null;
+    masterTemplate?: DMTemplate;
     onSave: (id: number, updates: Partial<AutomationInfluencer>) => void;
 }
 
-export function InfluencerDetailDrawer({ isOpen, onClose, influencer, onSave }: InfluencerDetailDrawerProps) {
+export function InfluencerDetailDrawer({ isOpen, onClose, influencer, masterTemplate, onSave }: InfluencerDetailDrawerProps) {
     if (!isOpen || !influencer) return null;
 
     const isActive = influencer.automationStatus === 'active' || influencer.automationStatus === 'updating';
@@ -92,13 +92,72 @@ export function InfluencerDetailDrawer({ isOpen, onClose, influencer, onSave }: 
                         </div>
                     </div>
                 ) : (
-                    // DRAFT STATE: Show Proposal Preview
+                    // DRAFT STATE: Show Proposal Preview (ALL STEPS)
                     <div className="space-y-6">
+                        {/* Step 1: Target Post */}
                         <div className="bg-white border border-[var(--ft-border-primary)] rounded-xl overflow-hidden shadow-sm">
                             <div className="px-5 py-3 border-b border-[var(--ft-border-secondary)] bg-gray-50">
-                                <h4 className="font-bold text-[var(--ft-text-primary)] flex items-center gap-2">
-                                    <FileText className="w-4 h-4 text-[var(--ft-color-primary-600)]" />
-                                    전송될 제안 내용 (Preview)
+                                <h4 className="font-bold text-[var(--ft-text-primary)] flex items-center gap-2 text-sm">
+                                    <span className="w-5 h-5 rounded-full bg-[var(--ft-color-primary-100)] text-[var(--ft-color-primary-600)] flex items-center justify-center text-xs mr-1">1</span>
+                                    대상 게시물
+                                </h4>
+                            </div>
+                            <div className="p-5">
+                                {masterTemplate?.postData ? (
+                                    <div className="flex gap-4 p-3 border border-[var(--ft-border-secondary)] rounded-lg bg-gray-50">
+                                        <img src={masterTemplate.postData.image} alt="Target Post" className="w-16 h-16 object-cover rounded bg-gray-200" />
+                                        <div className="flex flex-col justify-center">
+                                            <p className="text-sm font-medium text-[var(--ft-text-primary)] line-clamp-1">{masterTemplate.postData.caption}</p>
+                                            <p className="text-xs text-[var(--ft-text-secondary)] mt-1">{masterTemplate.postData.date}</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-3 p-4 border border-[var(--ft-border-secondary)] rounded-lg bg-gray-50 border-dashed">
+                                        <ImageIcon className="w-8 h-8 text-[var(--ft-text-disabled)]" />
+                                        <div>
+                                            <p className="text-sm font-medium text-[var(--ft-text-primary)]">최근 게시물 1개 (기본)</p>
+                                            <p className="text-xs text-[var(--ft-text-secondary)]">인플루언서의 가장 최근 게시물에 자동화가 적용됩니다.</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Step 2: Trigger */}
+                        <div className="bg-white border border-[var(--ft-border-primary)] rounded-xl overflow-hidden shadow-sm">
+                            <div className="px-5 py-3 border-b border-[var(--ft-border-secondary)] bg-gray-50">
+                                <h4 className="font-bold text-[var(--ft-text-primary)] flex items-center gap-2 text-sm">
+                                    <span className="w-5 h-5 rounded-full bg-[var(--ft-color-primary-100)] text-[var(--ft-color-primary-600)] flex items-center justify-center text-xs mr-1">2</span>
+                                    반응 조건 (Trigger)
+                                </h4>
+                            </div>
+                            <div className="p-5">
+                                {masterTemplate?.triggerKeywords && masterTemplate.triggerKeywords.length > 0 ? (
+                                    <div className="space-y-2">
+                                        <p className="text-sm text-[var(--ft-text-secondary)] mb-2">다음 키워드가 포함된 댓글에 반응:</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {masterTemplate.triggerKeywords.map((keyword, idx) => (
+                                                <span key={idx} className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium border border-blue-100">
+                                                    {keyword}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-3 p-4 border border-[var(--ft-border-secondary)] rounded-lg bg-gray-50 border-dashed">
+                                        <MessageSquare className="w-5 h-5 text-[var(--ft-text-disabled)]" />
+                                        <p className="text-sm text-[var(--ft-text-secondary)]">모든 댓글에 반응 (키워드 없음)</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Step 3: DM Message (Existing) */}
+                        <div className="bg-white border border-[var(--ft-border-primary)] rounded-xl overflow-hidden shadow-sm">
+                            <div className="px-5 py-3 border-b border-[var(--ft-border-secondary)] bg-gray-50">
+                                <h4 className="font-bold text-[var(--ft-text-primary)] flex items-center gap-2 text-sm">
+                                    <span className="w-5 h-5 rounded-full bg-[var(--ft-color-primary-100)] text-[var(--ft-color-primary-600)] flex items-center justify-center text-xs mr-1">3</span>
+                                    DM 메시지 & 버튼 (Preview)
                                 </h4>
                             </div>
                             <div className="p-5 space-y-5">

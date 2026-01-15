@@ -568,6 +568,7 @@ export function AutomationGroupDetail({
                             isOpen={isDrawerOpen}
                             onClose={() => setIsDrawerOpen(false)}
                             influencer={drawerInfluencer}
+                            masterTemplate={masterTemplate}
                             onSave={(id, updates) => {
                                 setLocalInfluencers(prev => prev.map(inf =>
                                     inf.id === id ? { ...inf, ...updates, automationStatus: 'updating' } : inf
