@@ -767,6 +767,7 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
                             });
                             setCurrentView('reaction-automation');
                         }}
+                        onNavigateToAutomation={(automationId) => handleNavigate(`automation-group-detail-${automationId}`)}
                     />
                 );
 

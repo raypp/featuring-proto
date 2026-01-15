@@ -7,18 +7,23 @@ import { AddAutomationModal } from "./AddAutomationModal";
 interface CampaignAutomationDashboardProps {
     campaignInfluencerCount: number;
     formatNumber: (value: number) => string;
+    onNavigateToAutomation?: (automationId: number) => void;
 }
 
 export function CampaignAutomationDashboard({
     campaignInfluencerCount,
-    formatNumber
+    formatNumber,
+    onNavigateToAutomation
 }: CampaignAutomationDashboardProps) {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [localAutomations, setLocalAutomations] = useState<AutomationGroupSummary[]>([]);
 
     const goToAutomationDetail = (id: number) => {
-        console.log(`Navigate to: /automation-groups/${id}`);
-        // In a real app: router.push(`/automation-groups/${id}`)
+        if (onNavigateToAutomation) {
+            onNavigateToAutomation(id);
+        } else {
+            console.log(`Navigate to: /automation-groups/${id}`);
+        }
     };
 
     const handleAddAutomation = (automation: AutomationGroupSummary) => {
@@ -103,8 +108,8 @@ export function CampaignAutomationDashboard({
                                     <div className="flex items-center justify-between">
                                         <div className="flex gap-4">
                                             <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${automation.status === 'running' ? 'bg-green-100 text-green-600' :
-                                                    automation.status === 'stopped' ? 'bg-gray-100 text-gray-500' :
-                                                        'bg-orange-100 text-orange-500'
+                                                automation.status === 'stopped' ? 'bg-gray-100 text-gray-500' :
+                                                    'bg-orange-100 text-orange-500'
                                                 }`}>
                                                 <Zap className="w-5 h-5" />
                                             </div>

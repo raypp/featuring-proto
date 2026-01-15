@@ -34,11 +34,12 @@ interface CampaignDetailProps {
     onEdit: () => void;
     onAddReactionAutomation?: () => void;
     onEditReactionAutomation?: () => void;
+    onNavigateToAutomation?: (automationId: number) => void;
 }
 
 type TabType = 'influencers' | 'contents' | 'reports' | 'reaction-automation';
 
-export function CampaignDetail({ campaign, influencers, contents, reactionAutomation, automationInfluencers = [], onBack, onEdit, onAddReactionAutomation, onEditReactionAutomation }: CampaignDetailProps) {
+export function CampaignDetail({ campaign, influencers, contents, reactionAutomation, automationInfluencers = [], onBack, onEdit, onAddReactionAutomation, onEditReactionAutomation, onNavigateToAutomation }: CampaignDetailProps) {
     const [activeTab, setActiveTab] = useState<TabType>('influencers');
     const [pageSize, setPageSize] = useState(25);
     const [currentPage, setCurrentPage] = useState(1);
@@ -799,11 +800,12 @@ export function CampaignDetail({ campaign, influencers, contents, reactionAutoma
                     </div>
                 )}
 
-                {/* Reaction Automation Tab */}
+                {/* Reaction Automation Tab - Summary Dashboard */}
                 {activeTab === 'reaction-automation' && (
                     <CampaignAutomationDashboard
                         campaignInfluencerCount={influencers.length}
                         formatNumber={formatNumber}
+                        onNavigateToAutomation={onNavigateToAutomation}
                     />
                 )}
             </div>
