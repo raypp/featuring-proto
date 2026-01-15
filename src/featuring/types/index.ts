@@ -147,6 +147,24 @@ export interface ReactionAutomation {
     lastModified: string;
 }
 
+// 캠페인 대시보드용 자동화 요약
+export interface AutomationGroupSummary {
+    id: number;
+    name: string;
+    status: AutomationStatus;
+    triggerType: TriggerType;
+    triggerKeywords: string[]; // 요약용 (최대 3개 + n)
+    influencerCount: number;
+    setupDoneCount: number; // 설정 완료 수 (예: 5/10)
+    lastModified?: string;
+    stats?: {
+        participation: number; // 참여 인플루언서
+        sent: number;         // 발송
+        click: number;        // 클릭
+        ctr: number;          // CTR
+    };
+}
+
 // 자동화 인플루언서 성과
 export interface AutomationInfluencer {
     id: number;

@@ -601,17 +601,48 @@ export default function App({ onSwitchService, connectedAccount, onConnect, onDi
         {currentView === 'campaign-detail' && selectedCampaign && (
           <CampaignDetail
             campaign={selectedCampaign}
+            influencers={[]} // Mock influencers
+            contents={[]}    // Mock contents
+            connectedAutomations={[
+              {
+                id: 1,
+                name: "새 팔로워 환영 인사",
+                status: "running",
+                triggerType: "comment_keyword",
+                triggerKeywords: ["가격", "정보"],
+                influencerCount: 15,
+                setupDoneCount: 12,
+                lastModified: "2024-03-20",
+                stats: {
+                  participation: 15,
+                  sent: 1250,
+                  click: 450,
+                  ctr: 36.0
+                }
+              },
+              {
+                id: 2,
+                name: "여름 프로모션",
+                status: "stopped",
+                triggerType: "dm_keyword",
+                triggerKeywords: ["이벤트"],
+                influencerCount: 8,
+                setupDoneCount: 8,
+                lastModified: "2024-03-18",
+                stats: {
+                  participation: 8,
+                  sent: 850,
+                  click: 120,
+                  ctr: 14.1
+                }
+              }
+            ] as any} // Cast to any to bypass strict type checking for mock data interface mismatch if any
             onBack={() => {
               setCurrentView('campaigns');
               setSelectedCampaign(undefined);
             }}
-            onSetupAutomation={(campaignId: number) => {
-              const proposal = proposals.find(p => p.id === campaignId);
-              if (proposal) {
-                setSelectedProposal(proposal);
-                setCurrentView('proposal-detail');
-              }
-            }}
+            onEdit={() => console.log("Edit campaign")}
+            onAddReactionAutomation={() => console.log("Add reaction automation")}
           />
         )}
         {currentView === 'create-automation' && (
