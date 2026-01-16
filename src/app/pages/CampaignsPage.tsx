@@ -53,8 +53,8 @@ export function CampaignsPage({
         <div className="p-8 space-y-8">
             {/* Header */}
             <div>
-                <h1 className="text-2xl font-semibold text-[#242424]">캠페인</h1>
-                <p className="text-sm text-[#707070] mt-1">브랜드와 함께하는 캠페인을 관리하세요</p>
+                <h1 className="text-2xl font-semibold text-[#242424]">브랜드 파트너십</h1>
+                <p className="text-sm text-[#707070] mt-1">브랜드와 함께하는 파트너십을 관리하세요</p>
             </div>
 
             {/* Pending Proposals Section */}
@@ -107,7 +107,7 @@ export function CampaignsPage({
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <Zap className="w-5 h-5 text-[#242424]" />
-                        <h2 className="text-lg font-medium text-[#242424]">캠페인 자동화 목록</h2>
+                        <h2 className="text-lg font-medium text-[#242424]">파트너십 자동화 목록</h2>
                         <span className="text-sm text-[#707070]">({proposals.length})</span>
                     </div>
                 </div>
@@ -118,7 +118,7 @@ export function CampaignsPage({
                             <div className="w-12 h-12 bg-[#f3f4f6] rounded-full flex items-center justify-center mx-auto mb-3">
                                 <Gift className="w-6 h-6 text-[#9ca3af]" />
                             </div>
-                            <p className="text-sm text-[#707070]">아직 캠페인이 없습니다</p>
+                            <p className="text-sm text-[#707070]">아직 파트너십이 없습니다</p>
                             <p className="text-xs text-[#9ca3af] mt-1">브랜드에서 제안이 오면 여기에 표시됩니다</p>
                         </CardContent>
                     </Card>
@@ -126,7 +126,7 @@ export function CampaignsPage({
                     <div className="bg-white rounded-xl border border-[#e5e7eb] overflow-hidden">
                         {/* Table Header */}
                         <div className="grid grid-cols-[1fr_120px_100px_100px_100px_40px] gap-4 px-4 py-3 bg-[#f9fafb] border-b border-[#e5e7eb] text-xs font-medium text-[#6b7280]">
-                            <div>캠페인</div>
+                            <div>파트너십</div>
                             <div>상태</div>
                             <div className="text-right">발송</div>
                             <div className="text-right">클릭</div>

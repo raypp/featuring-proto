@@ -179,7 +179,7 @@ export function Sidebar({ currentView, onChangeView, onLogout, hasPendingProposa
           </div>
           <p className={`text-sm font-medium ${(currentView === 'campaigns' || currentView === 'campaign-detail' || currentView === 'proposal-detail') ? 'text-[#5032f9]' : 'text-[#242424]'
             }`}>
-            캠페인
+            브랜드 파트너십
           </p>
           {hasPendingProposal && (
             <span className="w-2 h-2 bg-[#ef4444] rounded-full animate-pulse" />
