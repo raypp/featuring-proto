@@ -288,13 +288,16 @@ const MOCK_TEMPLATES: DMTemplate[] = [
   }
 ];
 
-// Mock Campaign Proposals (from B2B brands) - Track A: Dyson 캠페인
+// Mock Campaign Proposals (from B2B brands) - 다양한 상태를 포함한 테스트 데이터
 const MOCK_PROPOSALS: CampaignProposal[] = [
+  // ✅ 해야 할 일 섹션 - sent (새로운 제안)
   {
     id: 1,
     brandName: '다이슨',
     brandLogo: 'https://images.unsplash.com/photo-1560472355-536de3962603?w=100&h=100&fit=crop',
+    automationName: '에어랩 출시 기념 자동 DM',
     campaignName: '2026 에어랩 런칭 캠페인',
+    campaignId: 101,
     templateId: 101,
     triggerKeywords: ['에어랩', '참여', '이벤트'],
     publicReplyTexts: ['감사합니다! DM 확인해주세요 😊'],
@@ -302,8 +305,184 @@ const MOCK_PROPOSALS: CampaignProposal[] = [
     ctaButtonText: '쿠폰 받기',
     ctaLink: 'https://dyson.co.kr/promo',
     isCtaLocked: true,
-    status: 'pending',  // Just arrived - not yet accepted
-    receivedAt: '2026-01-14'
+    status: 'sent',
+    isUnread: true,
+    createdAt: '2026-01-19T10:00:00+09:00',
+    updatedAt: '2026-01-19T10:00:00+09:00',
+    receivedAt: '2026-01-19'
+  },
+  // ✅ 해야 할 일 섹션 - accepted (설정 필요)
+  {
+    id: 2,
+    brandName: '나이키',
+    brandLogo: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100&h=100&fit=crop',
+    automationName: '에어맥스 댓글 이벤트',
+    campaignName: '에어맥스 2026 캠페인',
+    campaignId: 102,
+    templateId: 102,
+    triggerKeywords: ['에어맥스', '참여'],
+    publicReplyTexts: ['참여 감사합니다! 🎉'],
+    dmMessage: '에어맥스 이벤트에 참여해주셔서 감사합니다!',
+    ctaButtonText: '이벤트 참여',
+    ctaLink: 'https://nike.com/event',
+    isCtaLocked: true,
+    status: 'accepted',
+    isUnread: false,
+    createdAt: '2026-01-17T14:00:00+09:00',
+    updatedAt: '2026-01-18T09:00:00+09:00',
+    receivedAt: '2026-01-17',
+    acceptedAt: '2026-01-18'
+  },
+  // ✅ 해야 할 일 섹션 - error (연동 필요)
+  {
+    id: 3,
+    brandName: '삼성',
+    brandLogo: '',
+    automationName: '갤럭시 자동 응답',
+    campaignName: '갤럭시 S26 런칭',
+    campaignId: 103,
+    templateId: 103,
+    triggerKeywords: ['갤럭시', '구매'],
+    publicReplyTexts: ['문의 감사합니다!'],
+    dmMessage: '갤럭시 S26에 관심 가져주셔서 감사합니다.',
+    ctaButtonText: '사전예약',
+    ctaLink: 'https://samsung.com/preorder',
+    isCtaLocked: false,
+    status: 'error',
+    errorReason: 'account_disconnected',
+    isUnread: true,
+    createdAt: '2026-01-15T10:00:00+09:00',
+    updatedAt: '2026-01-19T08:00:00+09:00',
+    receivedAt: '2026-01-15',
+    acceptedAt: '2026-01-15',
+    activatedAt: '2026-01-16'
+  },
+  // 🟢 운영 중 섹션 - active
+  {
+    id: 4,
+    brandName: '애플',
+    brandLogo: 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=100&h=100&fit=crop',
+    automationName: '아이폰 16 자동 DM',
+    campaignName: '아이폰 16 출시 캠페인',
+    campaignId: 104,
+    templateId: 104,
+    triggerKeywords: ['아이폰', '가격', '구매'],
+    publicReplyTexts: ['DM으로 정보 보내드렸어요! 📱'],
+    dmMessage: '아이폰 16에 관심 가져주셔서 감사합니다!',
+    ctaButtonText: '구매하기',
+    ctaLink: 'https://apple.com/iphone16',
+    isCtaLocked: true,
+    status: 'active',
+    isUnread: false,
+    createdAt: '2026-01-10T10:00:00+09:00',
+    updatedAt: '2026-01-19T07:30:00+09:00',
+    receivedAt: '2026-01-10',
+    acceptedAt: '2026-01-10',
+    activatedAt: '2026-01-11',
+    performance: {
+      sentCount: 1250,
+      clickCount: 380,
+      ctr: '30.4%'
+    }
+  },
+  // 🟢 운영 중 섹션 - active (단독 협업)
+  {
+    id: 5,
+    brandName: '스타벅스',
+    brandLogo: 'https://images.unsplash.com/photo-1453614512568-c4024d13c247?w=100&h=100&fit=crop',
+    automationName: '신메뉴 자동 응답',
+    campaignName: '스타벅스 신메뉴 홍보',
+    campaignId: null,  // 단독 협업
+    templateId: 105,
+    triggerKeywords: ['메뉴', '추천', '신메뉴'],
+    publicReplyTexts: ['추천드려요! ☕'],
+    dmMessage: '스타벅스 신메뉴를 추천드려요!',
+    ctaButtonText: '메뉴 보기',
+    ctaLink: 'https://starbucks.co.kr/menu',
+    isCtaLocked: false,
+    status: 'active',
+    isUnread: false,
+    createdAt: '2026-01-05T10:00:00+09:00',
+    updatedAt: '2026-01-18T15:00:00+09:00',
+    receivedAt: '2026-01-05',
+    acceptedAt: '2026-01-05',
+    activatedAt: '2026-01-06',
+    performance: {
+      sentCount: 850,
+      clickCount: 195,
+      ctr: '22.9%'
+    }
+  },
+  // ⏸ 중단됨 섹션 - paused
+  {
+    id: 6,
+    brandName: '아디다스',
+    brandLogo: 'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=100&h=100&fit=crop',
+    automationName: '스니커즈 이벤트',
+    campaignName: '아디다스 스니커즈 캠페인',
+    campaignId: 106,
+    templateId: 106,
+    triggerKeywords: ['스니커즈', '신발'],
+    publicReplyTexts: ['이벤트 참여하세요!'],
+    dmMessage: '아디다스 스니커즈 이벤트입니다.',
+    ctaButtonText: '참여하기',
+    ctaLink: 'https://adidas.co.kr/event',
+    isCtaLocked: true,
+    status: 'paused',
+    isUnread: false,
+    createdAt: '2026-01-01T10:00:00+09:00',
+    updatedAt: '2026-01-15T12:00:00+09:00',
+    receivedAt: '2026-01-01',
+    acceptedAt: '2026-01-02',
+    activatedAt: '2026-01-03',
+    performance: {
+      sentCount: 420,
+      clickCount: 89,
+      ctr: '21.2%'
+    }
+  },
+  // 🗃 보관함 섹션 - rejected
+  {
+    id: 7,
+    brandName: '테슬라',
+    brandLogo: '',
+    automationName: '모델3 자동 DM',
+    campaignName: '테슬라 모델3 캠페인',
+    campaignId: null,  // 단독 협업
+    templateId: 107,
+    triggerKeywords: ['테슬라', '모델3'],
+    publicReplyTexts: ['관심 감사합니다!'],
+    dmMessage: '테슬라 모델3 정보입니다.',
+    ctaButtonText: '자세히 보기',
+    ctaLink: 'https://tesla.com/model3',
+    isCtaLocked: true,
+    status: 'rejected',
+    isUnread: false,
+    createdAt: '2025-12-20T10:00:00+09:00',
+    updatedAt: '2025-12-21T10:00:00+09:00',
+    receivedAt: '2025-12-20'
+  },
+  // 🗃 보관함 섹션 - expired
+  {
+    id: 8,
+    brandName: '구글',
+    brandLogo: '',
+    automationName: '픽셀 자동 응답',
+    campaignName: '픽셀 8 캠페인',
+    campaignId: 108,
+    templateId: 108,
+    triggerKeywords: ['픽셀', 'AI'],
+    publicReplyTexts: ['AI 폰 최고!'],
+    dmMessage: '픽셀 8 정보 보내드려요.',
+    ctaButtonText: '구매하기',
+    ctaLink: 'https://google.com/pixel',
+    isCtaLocked: true,
+    status: 'expired',
+    isUnread: false,
+    createdAt: '2025-11-01T10:00:00+09:00',
+    updatedAt: '2025-12-01T10:00:00+09:00',
+    receivedAt: '2025-11-01',
+    acceptedAt: '2025-11-02'
   }
 ];
 
@@ -527,7 +706,8 @@ export default function App({ onSwitchService, connectedAccount, onConnect, onDi
       if (p.id === proposalId) {
         return {
           ...p,
-          status: 'rejected' as const
+          status: 'rejected' as const,
+          updatedAt: new Date().toISOString()
         };
       }
       return p;
@@ -536,8 +716,36 @@ export default function App({ onSwitchService, connectedAccount, onConnect, onDi
     setSelectedProposal(undefined);
   };
 
-  // Check if there are pending proposals for GNB notification
-  const hasPendingProposal = proposals.some(p => p.status === 'pending');
+  // Quick pause - moves active proposal to 'paused' state
+  const handleQuickPause = (proposalId: number) => {
+    setProposals(prev => prev.map(p => {
+      if (p.id === proposalId && p.status === 'active') {
+        return {
+          ...p,
+          status: 'paused' as const,
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return p;
+    }));
+  };
+
+  // Quick resume - moves paused proposal back to 'active' state
+  const handleQuickResume = (proposalId: number) => {
+    setProposals(prev => prev.map(p => {
+      if (p.id === proposalId && p.status === 'paused') {
+        return {
+          ...p,
+          status: 'active' as const,
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return p;
+    }));
+  };
+
+  // Check if there are new (unread) proposals for GNB notification
+  const hasPendingProposal = proposals.some(p => p.status === 'sent' && p.isUnread);
 
   const renderContent = () => {
     if (!connectedAccount) {
@@ -572,7 +780,7 @@ export default function App({ onSwitchService, connectedAccount, onConnect, onDi
                 console.log('Delete automation:', id);
               }
             }}
-            proposals={proposals.filter(p => p.status === 'pending')}
+            proposals={proposals.filter(p => p.status === 'sent' && p.isUnread)}
             onProposalClick={handleProposalClick}
           />
         )}
@@ -596,6 +804,8 @@ export default function App({ onSwitchService, connectedAccount, onConnect, onDi
           <CampaignsPage
             proposals={proposals}
             onProposalClick={handleProposalClick}
+            onQuickPause={handleQuickPause}
+            onQuickResume={handleQuickResume}
           />
         )}
         {currentView === 'campaign-detail' && selectedCampaign && (

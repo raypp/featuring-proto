@@ -8,13 +8,14 @@ interface ProposalCardProps {
 }
 
 export function ProposalCard({ proposal, onClick }: ProposalCardProps) {
-    const isPending = proposal.status === 'pending';
+    const isSent = proposal.status === 'sent';
+    const isViewed = proposal.status === 'viewed';
     const isActive = proposal.status === 'active';
     const isAccepted = proposal.status === 'accepted';
     const isRejected = proposal.status === 'rejected';
 
     const getStatusBadge = () => {
-        if (isPending) {
+        if (isSent) {
             return (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#5e51ff]/10 text-[#5e51ff] text-xs font-medium rounded-full animate-pulse">
                     <Gift className="w-3 h-3" />
@@ -50,7 +51,7 @@ export function ProposalCard({ proposal, onClick }: ProposalCardProps) {
     };
 
     const getCardStyle = () => {
-        if (isPending) return 'border-[#5e51ff] bg-[#fafaff] shadow-sm';
+        if (isSent) return 'border-[#5e51ff] bg-[#fafaff] shadow-sm';
         if (isActive) return 'border-[#10b981] bg-[#f0fdf4]';
         if (isAccepted) return 'border-[#f59e0b] bg-[#fffbeb]';
         if (isRejected) return 'border-[#e5e7eb] bg-[#f9fafb] opacity-60';
@@ -58,7 +59,7 @@ export function ProposalCard({ proposal, onClick }: ProposalCardProps) {
     };
 
     const getTitle = () => {
-        if (isPending) return `🎁 ${proposal.brandName}님이 자동화 템플릿을 보냈습니다`;
+        if (isSent) return `🎁 ${proposal.brandName}님이 자동화 템플릿을 보냈습니다`;
         if (isAccepted) return `${proposal.campaignName} - 설정을 완료해주세요`;
         if (isActive) return proposal.campaignName;
         if (isRejected) return `[거절됨] ${proposal.campaignName}`;
@@ -73,7 +74,7 @@ export function ProposalCard({ proposal, onClick }: ProposalCardProps) {
             <CardContent className="p-4">
                 <div className="flex items-center gap-4">
                     {/* Brand Logo */}
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${isPending ? 'bg-gradient-to-br from-[#5e51ff] to-[#8b5cf6] ring-2 ring-[#5e51ff]/20' : 'bg-gradient-to-br from-purple-500 to-pink-500'}`}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${isSent ? 'bg-gradient-to-br from-[#5e51ff] to-[#8b5cf6] ring-2 ring-[#5e51ff]/20' : 'bg-gradient-to-br from-purple-500 to-pink-500'}`}>
                         {proposal.brandLogo ? (
                             <img
                                 src={proposal.brandLogo}
