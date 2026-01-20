@@ -172,6 +172,11 @@ export function AutomationGroupList({ automationGroups, onNavigate, onCreateGrou
                                         <span className="text-sm text-[var(--ft-text-primary)]">
                                             {group.name}
                                         </span>
+                                        {group.linkedCampaignId && (
+                                            <CoreTag colorType="blue" size="xs">
+                                                캠페인 연결
+                                            </CoreTag>
+                                        )}
                                         {group.templateStatus === 'deployed' && (
                                             <CoreTag colorType="gray" size="xs">
                                                 보기 전용

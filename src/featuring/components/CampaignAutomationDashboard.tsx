@@ -8,15 +8,19 @@ interface CampaignAutomationDashboardProps {
     campaignInfluencerCount: number;
     formatNumber: (value: number) => string;
     onNavigateToAutomation?: (automationId: number) => void;
+    onAddAutomation?: (automation: AutomationGroupSummary) => void;
+    existingAutomations?: AutomationGroupSummary[];
 }
 
 export function CampaignAutomationDashboard({
     campaignInfluencerCount,
     formatNumber,
-    onNavigateToAutomation
+    onNavigateToAutomation,
+    onAddAutomation,
+    existingAutomations = []
 }: CampaignAutomationDashboardProps) {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [localAutomations, setLocalAutomations] = useState<AutomationGroupSummary[]>([]);
+    const [localAutomations, setLocalAutomations] = useState<AutomationGroupSummary[]>(existingAutomations);
 
     const goToAutomationDetail = (id: number) => {
         if (onNavigateToAutomation) {
@@ -28,6 +32,10 @@ export function CampaignAutomationDashboard({
 
     const handleAddAutomation = (automation: AutomationGroupSummary) => {
         setLocalAutomations(prev => [...prev, automation]);
+        // Notify parent to sync with global state
+        if (onAddAutomation) {
+            onAddAutomation(automation);
+        }
     };
 
     return (

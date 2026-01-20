@@ -24,22 +24,26 @@ import { Campaign, CampaignInfluencer, CampaignContent, ReactionAutomation as Re
 import { CoreButton, CoreTag, CoreDot, CoreAvatar, CoreStatusBadge } from "../../design-system";
 
 import { CampaignAutomationDashboard } from "../components/CampaignAutomationDashboard";
+import { AutomationGroupSummary } from "../types";
+
 interface CampaignDetailProps {
     campaign: Campaign;
     influencers: CampaignInfluencer[];
     contents: CampaignContent[];
     reactionAutomation?: ReactionAutomationType;
     automationInfluencers?: AutomationInfluencer[];
+    campaignAutomations?: AutomationGroupSummary[];
     onBack: () => void;
     onEdit: () => void;
     onAddReactionAutomation?: () => void;
     onEditReactionAutomation?: () => void;
     onNavigateToAutomation?: (automationId: number) => void;
+    onAddAutomation?: (automation: AutomationGroupSummary) => void;
 }
 
 type TabType = 'influencers' | 'contents' | 'reports' | 'reaction-automation';
 
-export function CampaignDetail({ campaign, influencers, contents, reactionAutomation, automationInfluencers = [], onBack, onEdit, onAddReactionAutomation, onEditReactionAutomation, onNavigateToAutomation }: CampaignDetailProps) {
+export function CampaignDetail({ campaign, influencers, contents, reactionAutomation, automationInfluencers = [], campaignAutomations = [], onBack, onEdit, onAddReactionAutomation, onEditReactionAutomation, onNavigateToAutomation, onAddAutomation }: CampaignDetailProps) {
     const [activeTab, setActiveTab] = useState<TabType>('influencers');
     const [pageSize, setPageSize] = useState(25);
     const [currentPage, setCurrentPage] = useState(1);
@@ -806,6 +810,8 @@ export function CampaignDetail({ campaign, influencers, contents, reactionAutoma
                         campaignInfluencerCount={influencers.length}
                         formatNumber={formatNumber}
                         onNavigateToAutomation={onNavigateToAutomation}
+                        onAddAutomation={onAddAutomation}
+                        existingAutomations={campaignAutomations}
                     />
                 )}
             </div>

@@ -8,7 +8,7 @@ import { AutomationGroupDetail } from "./pages/AutomationGroupDetail";
 import { TemplateManagement } from "./pages/TemplateManagement";
 import { CampaignManagement } from "./pages/CampaignManagement";
 import { CampaignDetail } from "./pages/CampaignDetail";
-import { AutomationGroup, DMTemplate, Campaign, CampaignInfluencer, CampaignContent, AutomationInfluencer } from "./types";
+import { AutomationGroup, DMTemplate, Campaign, CampaignInfluencer, CampaignContent, AutomationInfluencer, AutomationGroupSummary } from "./types";
 
 // Mock Data
 const MOCK_AUTOMATION_GROUPS: AutomationGroup[] = [
@@ -438,6 +438,30 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
     const [nextTemplateId, setNextTemplateId] = useState(4);
     const [reactionAutomationContext, setReactionAutomationContext] = useState<{ context: 'global' | 'campaign'; campaignId?: number; campaignName?: string } | null>(null);
     const [reactionAutomationMode, setReactionAutomationMode] = useState<'view' | 'edit'>('view');
+    const [campaignAutomations, setCampaignAutomations] = useState<Record<number, AutomationGroupSummary[]>>({});
+
+    // Handle adding automation from campaign
+    const handleAddCampaignAutomation = (campaignId: number, automation: AutomationGroupSummary) => {
+        // Add to campaign-specific automations
+        setCampaignAutomations(prev => ({
+            ...prev,
+            [campaignId]: [...(prev[campaignId] || []), automation]
+        }));
+
+        // Also add to global automation groups so it appears in 반응 자동화 관리
+        const newGroup: AutomationGroup = {
+            id: automation.id,
+            name: automation.name,
+            description: `캠페인에서 생성됨`,
+            status: automation.status === 'running' ? 'active' : 'inactive',
+            influencerCount: automation.influencerCount,
+            templateStatus: 'draft',
+            lastModified: new Date().toISOString().split('T')[0],
+            createdAt: new Date().toISOString().split('T')[0],
+            linkedCampaignId: campaignId
+        };
+        setAutomationGroups(prev => [...prev, newGroup]);
+    };
 
     // Mock automation influencers - derives from campaign influencers if linked
     const getAutomationInfluencers = (): AutomationInfluencer[] => {
@@ -768,6 +792,8 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
                             setCurrentView('reaction-automation');
                         }}
                         onNavigateToAutomation={(automationId) => handleNavigate(`automation-group-detail-${automationId}`)}
+                        campaignAutomations={campaignAutomations[selectedCampaign.id] || []}
+                        onAddAutomation={(automation) => handleAddCampaignAutomation(selectedCampaign.id, automation)}
                     />
                 );
 

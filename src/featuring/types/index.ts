@@ -13,10 +13,12 @@ export interface AutomationGroup {
     linkedCampaignId?: number;  // Links to Campaign.id
 }
 
-// CTA 링크
+// CTA 링크 (변수 지원)
 export interface CTALink {
     buttonName: string;
     url: string;
+    isVariable?: boolean;      // true면 변수로 처리
+    variableName?: string;     // 변수명 (예: "product_url")
 }
 
 // 템플릿 상태
@@ -25,6 +27,7 @@ export type TemplateStatus = 'draft' | 'saved' | 'deployed';
 // DM 템플릿
 export interface DMTemplate {
     id?: number;
+    name?: string;             // 템플릿 이름
     automationGroupId: number;
     dmGuide: string;           // Plain text, multi-line
     imageUrl?: string;         // Optional single image
@@ -43,6 +46,15 @@ export interface DMTemplate {
         caption: string;
         date: string;
     };
+}
+
+// 인플루언서별 템플릿 변수값
+export interface InfluencerTemplateVars {
+    influencerId: number;
+    templateId: number;
+    variables: Record<string, string>;  // { "product_url": "https://..." }
+    deliveryStatus?: 'pending' | 'sent' | 'failed' | 'cancelled';
+    deliveredAt?: string;
 }
 
 // 인플루언서
@@ -223,4 +235,65 @@ export interface AutomationInfluencer {
         followConversions?: number;
         followConversionRate?: number;
     }[];
+}
+
+// 발송 상태
+export type SendStatus = 'pending' | 'sending' | 'sent' | 'failed';
+
+// 발송 속도
+export type SendSpeed = 'slow' | 'normal' | 'fast';
+
+// 발송 로그 엔트리
+export interface SendLogEntry {
+    id: number;
+    influencerId: number;
+    influencerName: string;
+    profileImage?: string;
+    timestamp: string;
+    status: SendStatus;
+    errorMessage?: string;
+}
+
+// 발송 스케줄
+export interface SendSchedule {
+    scheduledTime: string;
+    speed: SendSpeed;
+}
+
+// 대기열 메시지
+export interface QueuedMessage {
+    id: number;
+    influencerId: number;
+    influencerName: string;
+    profileImage?: string;
+    followerCount: number;
+    messageType: 'dm' | 'comment_reply';
+    linkSettings: string[];
+    status: SendStatus;
+    scheduledTime?: string;
+}
+
+// 일별 성과 데이터 (차트용)
+export interface DailyPerformance {
+    date: string;
+    reach: number;
+    clicks: number;
+    conversions: number;
+}
+
+// 성과 상세 테이블 행
+export interface PerformanceTableRow {
+    id: number;
+    influencerName: string;
+    profileImage?: string;
+    followerCount: number;
+    sentDate: string;
+    isOpened: boolean;
+    clickCount: number;
+    conversionCount: number;
+    clickRate: number;
+    roi: number;
+    likes: number;
+    comments: number;
+    saves: number;
 }
