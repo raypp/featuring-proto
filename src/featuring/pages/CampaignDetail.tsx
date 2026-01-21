@@ -26,6 +26,7 @@ import { CoreButton, CoreTag, CoreDot, CoreAvatar, CoreStatusBadge } from "../..
 import { CampaignAutomationDashboard } from "../components/CampaignAutomationDashboard";
 import { AutomationGroupSummary } from "../types";
 import { InfluencerGrid } from "../components/InfluencerGrid";
+import { AddInfluencerModal } from "../components/AddInfluencerModal";
 
 interface CampaignDetailProps {
     campaign: Campaign;
@@ -54,6 +55,14 @@ export function CampaignDetail({ campaign, influencers, contents, reactionAutoma
     const [isAddFeatureOpen, setIsAddFeatureOpen] = useState(false);
     const [hasReactionAutomation, setHasReactionAutomation] = useState(!!reactionAutomation);
     const [selectedAutomationInfluencers, setSelectedAutomationInfluencers] = useState<number[]>([]);
+    const [isAddInfluencerModalOpen, setIsAddInfluencerModalOpen] = useState(false);
+
+    // Mock handler for adding influencers (In a real app, this would update data)
+    const handleAddInfluencers = (newInfluencers: any[]) => {
+        console.log("Adding influencers:", newInfluencers);
+        setIsAddInfluencerModalOpen(false);
+        // Here you would typically update the 'influencers' state or call an API
+    };
 
     // Selection handlers
     const toggleInfluencer = (id: number) => {
@@ -332,8 +341,16 @@ export function CampaignDetail({ campaign, influencers, contents, reactionAutoma
                     <InfluencerGrid
                         influencers={influencers}
                         onSelectionChange={setSelectedInfluencers}
+                        onAddInfluencer={() => setIsAddInfluencerModalOpen(true)}
                     />
                 )}
+
+                {/* Add Influencer Modal */}
+                <AddInfluencerModal
+                    isOpen={isAddInfluencerModalOpen}
+                    onClose={() => setIsAddInfluencerModalOpen(false)}
+                    onAdd={handleAddInfluencers}
+                />
 
                 {/* Contents Tab */}
                 {activeTab === 'contents' && (

@@ -28,6 +28,7 @@ interface InfluencerGridRow extends CampaignInfluencer {
 interface InfluencerGridProps {
     influencers: CampaignInfluencer[];
     onSelectionChange?: (selectedIds: number[]) => void;
+    onAddInfluencer?: () => void;
 }
 
 // Full Width Renderer (Detail View)
@@ -91,7 +92,7 @@ const DetailCellRenderer = (params: ICellRendererParams & { data: InfluencerGrid
     );
 };
 
-export function InfluencerGrid({ influencers, onSelectionChange }: InfluencerGridProps) {
+export function InfluencerGrid({ influencers, onSelectionChange, onAddInfluencer }: InfluencerGridProps) {
     const [gridApi, setGridApi] = useState<any>(null);
     const [expandedIds, setExpandedIds] = useState<number[]>([]);
 
@@ -260,7 +261,10 @@ export function InfluencerGrid({ influencers, onSelectionChange }: InfluencerGri
                     </button>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button className="px-3 py-1.5 text-xs font-medium border border-gray-200 rounded flex items-center gap-1.5 text-gray-900 bg-white hover:bg-gray-50 shadow-sm">
+                    <button
+                        onClick={onAddInfluencer}
+                        className="px-3 py-1.5 text-xs font-medium border border-gray-200 rounded flex items-center gap-1.5 text-gray-900 bg-white hover:bg-gray-50 shadow-sm"
+                    >
                         <UserPlus className="w-3.5 h-3.5" /> 인플루언서 추가
                     </button>
                     <button className="px-3 py-1.5 text-xs font-medium border border-gray-200 rounded flex items-center gap-1.5 text-gray-900 bg-white hover:bg-gray-50 shadow-sm">

@@ -106,22 +106,7 @@ export function Sidebar({ currentView, onChangeView, onBackToServiceSelector }: 
                         isActive={isActive('automation-groups')}
                         onClick={() => onChangeView('automation-groups')}
                     />
-                    <NavItem
-                        icon={BarChart3}
-                        label="AG Grid 테스트"
-                        isActive={isActive('ag-grid-test')}
-                        onClick={() => onChangeView('ag-grid-test')}
-                        tag="DEV"
-                        tagColor="purple"
-                    />
-                    <NavItem
-                        icon={BarChart3}
-                        label="ReactGrid 테스트"
-                        isActive={isActive('reactgrid-test')}
-                        onClick={() => onChangeView('reactgrid-test')}
-                        tag="DEV"
-                        tagColor="purple"
-                    />
+
 
                 </div>
             </nav>

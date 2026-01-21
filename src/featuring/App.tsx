@@ -7,8 +7,7 @@ import { AutomationGroupList } from "./pages/AutomationGroupList";
 import { AutomationGroupDetail } from "./pages/AutomationGroupDetail";
 import { TemplateManagement } from "./pages/TemplateManagement";
 import { CampaignManagement } from "./pages/CampaignManagement";
-import { InfluencerAgGridTest } from "./pages/InfluencerAgGridTest";
-import { InfluencerGridTest } from "./pages/InfluencerGridTest";
+
 import { CampaignDetail } from "./pages/CampaignDetail";
 import { AutomationGroup, DMTemplate, Campaign, CampaignInfluencer, CampaignContent, AutomationInfluencer, AutomationGroupSummary } from "./types";
 
@@ -878,11 +877,7 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
                     </div>
                 );
 
-            case 'ag-grid-test':
-                return <InfluencerAgGridTest />;
 
-            case 'reactgrid-test':
-                return <InfluencerGridTest />;
 
 
 
