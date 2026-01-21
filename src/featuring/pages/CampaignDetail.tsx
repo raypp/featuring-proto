@@ -26,6 +26,7 @@ import { CoreButton, CoreTag, CoreDot, CoreAvatar, CoreStatusBadge } from "../..
 import { CampaignAutomationDashboard } from "../components/CampaignAutomationDashboard";
 import { AutomationGroupSummary } from "../types";
 import { InfluencerGrid } from "../components/InfluencerGrid";
+import { ContentGrid, ContentGridRow } from "../components/ContentGrid";
 import { AddInfluencerModal } from "../components/AddInfluencerModal";
 
 interface CampaignDetailProps {
@@ -154,6 +155,21 @@ export function CampaignDetail({ campaign, influencers, contents, reactionAutoma
     const totalSpent = influencers.reduce((sum, i) => sum + (i.totalContentCost || 0), 0);
     const conversionRate = 10; // Mock
     const totalReach = 30; // Mock percentage
+
+    // Content Stats
+    const totalContents = contents.length; // Mock 30 in screenshot
+    const uploadRate = 30; // Mock
+    const totalContentCost = 5000000; // Mock
+    const avgCPE = 120; // Mock
+    const avgCPV = 1.23; // Mock
+
+    // Prepare content rows
+    const contentRows: ContentGridRow[] = contents.map(c => ({
+        ...c,
+        category: ['F&B', '다이어트/건강보조식품'], // Mock or derive from influencer
+        email: '미입력',
+        note: '미입력'
+    }));
 
     // Convert campaign influencers to automation influencers for reaction automation tab
     const campaignAutomationInfluencers: AutomationInfluencer[] = influencers.map((inf) => ({
@@ -293,29 +309,64 @@ export function CampaignDetail({ campaign, influencers, contents, reactionAutoma
                     </div>
                 </div>
 
-                {/* Stats Section (Clean Text) */}
-                <div className="px-6 py-8 border-b border-gray-100 flex items-center">
-                    <div className="flex-1 border-r border-gray-100 pr-8">
-                        <p className="text-xs text-gray-500 mb-2">전체 인플루언서 수</p>
-                        <div className="flex items-baseline gap-2">
-                            <span className="text-2xl font-bold text-gray-900">{totalInfluencers} 명</span>
-                            <span className="text-sm text-gray-400">/500</span>
-                        </div>
-                    </div>
-                    <div className="flex-1 px-8 border-r border-gray-100">
-                        <p className="text-xs text-gray-500 mb-2">평균 팔로워 수</p>
-                        <p className="text-2xl font-bold text-gray-900">9,204만 명</p>
-                    </div>
-                    <div className="flex-1 px-8">
-                        <p className="text-xs text-gray-500 mb-2">콘텐츠 업로드 완료율</p>
-                        <div className="flex items-baseline gap-2">
-                            <span className="text-2xl font-bold text-gray-900">30%</span>
-                            <span className="text-sm text-gray-400">(30/100)</span>
-                        </div>
-                    </div>
-                </div>
+            </div>
 
-                {/* Filter and Search Bar */}
+            {/* Stats Section */}
+            <div className="px-6 py-8 border-b border-gray-100 flex items-center">
+                {activeTab === 'contents' ? (
+                    <>
+                        <div className="flex-1 border-r border-gray-100 pr-8">
+                            <p className="text-xs text-gray-500 mb-2">전체 콘텐츠 수</p>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-2xl font-bold text-gray-900">{totalContents} 개</span>
+                            </div>
+                        </div>
+                        <div className="flex-1 px-8 border-r border-gray-100">
+                            <p className="text-xs text-gray-500 mb-2">콘텐츠 업로드 완료율</p>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-2xl font-bold text-gray-900">{uploadRate}%</span>
+                                <span className="text-sm text-gray-400">({totalContents}/100)</span>
+                            </div>
+                        </div>
+                        <div className="flex-1 px-8 border-r border-gray-100">
+                            <p className="text-xs text-gray-500 mb-2">총 광고비</p>
+                            <p className="text-2xl font-bold text-gray-900">{formatNumber(totalContentCost)} 원</p>
+                        </div>
+                        <div className="flex-1 px-8 border-r border-gray-100">
+                            <p className="text-xs text-gray-500 mb-2">평균 CPE</p>
+                            <p className="text-2xl font-bold text-gray-900">{avgCPE} 원</p>
+                        </div>
+                        <div className="flex-1 px-8">
+                            <p className="text-xs text-gray-500 mb-2">평균 CPV</p>
+                            <p className="text-2xl font-bold text-gray-900">{avgCPV} 원</p>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <div className="flex-1 border-r border-gray-100 pr-8">
+                            <p className="text-xs text-gray-500 mb-2">전체 인플루언서 수</p>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-2xl font-bold text-gray-900">{totalInfluencers} 명</span>
+                                <span className="text-sm text-gray-400">/500</span>
+                            </div>
+                        </div>
+                        <div className="flex-1 px-8 border-r border-gray-100">
+                            <p className="text-xs text-gray-500 mb-2">평균 팔로워 수</p>
+                            <p className="text-2xl font-bold text-gray-900">9,204만 명</p>
+                        </div>
+                        <div className="flex-1 px-8">
+                            <p className="text-xs text-gray-500 mb-2">콘텐츠 업로드 완료율</p>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-2xl font-bold text-gray-900">30%</span>
+                                <span className="text-sm text-gray-400">(30/100)</span>
+                            </div>
+                        </div>
+                    </>
+                )}
+            </div>
+
+            {/* Filter and Search Bar - Render only if NOT contents tab, as ContentGrid has its own */}
+            {activeTab !== 'contents' && (
                 <div className="px-6 py-4 flex items-center justify-between bg-white">
                     <CoreButton variant="secondary" size="sm" leftIcon={<Users className="w-4 h-4" />}>
                         필터
@@ -331,7 +382,7 @@ export function CampaignDetail({ campaign, influencers, contents, reactionAutoma
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Content Area */}
             <div className="flex-1 p-6 overflow-auto bg-white">
@@ -354,189 +405,10 @@ export function CampaignDetail({ campaign, influencers, contents, reactionAutoma
 
                 {/* Contents Tab */}
                 {activeTab === 'contents' && (
-                    <div className="bg-[var(--ft-bg-primary)] rounded-[var(--ft-radius-lg)] border border-[var(--ft-border-secondary)] overflow-hidden">
-                        {/* Table Header */}
-                        <div className="overflow-x-auto">
-                            <div className="min-w-[1600px]">
-                                <div className="grid grid-cols-[40px_60px_150px_80px_80px_70px_70px_70px_80px_80px_100px_80px_80px_100px] items-center h-10 border-b border-[var(--ft-border-secondary)] bg-[var(--ft-bg-secondary)] px-4 text-[12px] text-[var(--ft-text-secondary)]">
-                                    <div className="flex items-center justify-center">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedContents.length === contents.length && contents.length > 0}
-                                            onChange={toggleAllContents}
-                                            className="w-4 h-4 rounded border-[var(--ft-border-primary)] text-[var(--ft-color-primary-600)] focus:ring-[var(--ft-color-primary-500)] cursor-pointer"
-                                        />
-                                    </div>
-                                    <span></span>
-                                    <span>인플루언서</span>
-                                    <span>콘텐츠 유형</span>
-                                    <span>게시일</span>
-                                    <span>좋아요</span>
-                                    <span>댓글</span>
-                                    <span>저장</span>
-                                    <span>도달</span>
-                                    <span>인사이트</span>
-                                    <span>콘텐츠 비용</span>
-                                    <span>CPV</span>
-                                    <span>2차 활용</span>
-                                    <span>승인 상태</span>
-                                </div>
-
-                                {/* Table Body */}
-                                {contents.length === 0 ? (
-                                    <div className="py-16 text-center">
-                                        <p className="text-sm text-[var(--ft-text-disabled)]">
-                                            콘텐츠가 없습니다
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div>
-                                        {contents.map((content) => (
-                                            <div
-                                                key={content.id}
-                                                className="grid grid-cols-[40px_60px_150px_80px_80px_70px_70px_70px_80px_80px_100px_80px_80px_100px] items-center min-h-[64px] border-b border-[var(--ft-border-primary)] last:border-b-0 hover:bg-[var(--ft-interactive-tertiary-hover)] px-4 text-[13px]"
-                                            >
-                                                {/* Checkbox */}
-                                                <div className="flex items-center justify-center">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedContents.includes(content.id)}
-                                                        onChange={() => toggleContent(content.id)}
-                                                        className="w-4 h-4 rounded border-[var(--ft-border-primary)] text-[var(--ft-color-primary-600)] focus:ring-[var(--ft-color-primary-500)] cursor-pointer"
-                                                    />
-                                                </div>
-
-                                                {/* Thumbnail */}
-                                                <div className="flex items-center justify-center">
-                                                    {content.thumbnailUrl ? (
-                                                        <img
-                                                            src={content.thumbnailUrl}
-                                                            alt="content"
-                                                            className="w-10 h-10 rounded-[var(--ft-radius-md)] object-cover"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-10 h-10 rounded-[var(--ft-radius-md)] bg-[var(--ft-bg-secondary)] flex items-center justify-center">
-                                                            <Image className="w-4 h-4 text-[var(--ft-text-disabled)]" />
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Influencer */}
-                                                <div className="flex items-center gap-2">
-                                                    <CoreAvatar
-                                                        src={content.influencerProfileImage}
-                                                        name={content.influencerDisplayName}
-                                                        size="xs"
-                                                    />
-                                                    <div>
-                                                        <p className="text-sm font-medium text-[var(--ft-text-primary)]">
-                                                            {content.influencerDisplayName}
-                                                        </p>
-                                                        <p className="text-xs text-[var(--ft-text-disabled)]">
-                                                            @{content.influencerUsername}
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                {/* Content Type */}
-                                                <CoreTag colorType="gray" size="xs">{content.contentType}</CoreTag>
-
-                                                {/* Posted Date */}
-                                                <span className="text-[var(--ft-text-secondary)]">{content.postedDate}</span>
-
-                                                {/* Likes */}
-                                                <span className="text-[var(--ft-text-secondary)]">{formatNumber(content.likes)}</span>
-
-                                                {/* Comments */}
-                                                <span className="text-[var(--ft-text-secondary)]">{formatNumber(content.comments)}</span>
-
-                                                {/* Saves */}
-                                                <span className="text-[var(--ft-text-secondary)]">{formatNumber(content.saves)}</span>
-
-                                                {/* Reach */}
-                                                <span className="text-[var(--ft-text-secondary)]">{formatNumber(content.reach)}</span>
-
-                                                {/* Insight Data */}
-                                                <span className="text-center">
-                                                    {content.insightDataReceived ? (
-                                                        <Check className="w-4 h-4 text-[var(--ft-color-green-600)] inline" />
-                                                    ) : (
-                                                        <X className="w-4 h-4 text-[var(--ft-text-disabled)] inline" />
-                                                    )}
-                                                </span>
-
-                                                {/* Content Cost */}
-                                                <span className="text-[var(--ft-text-secondary)]">{formatCurrency(content.contentCost)}</span>
-
-                                                {/* CPV */}
-                                                <span className="text-[var(--ft-text-secondary)]">{content.cpv}</span>
-
-                                                {/* Secondary Usage */}
-                                                <CoreStatusBadge
-                                                    colorType={content.secondaryUsage ? 'success' : 'default'}
-                                                    type="tint"
-                                                    size="sm"
-                                                >
-                                                    {content.secondaryUsage ? '사용' : '미사용'}
-                                                </CoreStatusBadge>
-
-                                                {/* Approval Status */}
-                                                <CoreStatusBadge
-                                                    colorType={
-                                                        content.approvalStatus === 'approved' ? 'success' :
-                                                            content.approvalStatus === 'rejected' ? 'error' : 'warning'
-                                                    }
-                                                    type="tint"
-                                                    size="sm"
-                                                >
-                                                    {content.approvalStatus === 'approved' ? '승인됨' :
-                                                        content.approvalStatus === 'rejected' ? '반려됨' : '대기중'}
-                                                </CoreStatusBadge>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Pagination */}
-                        <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--ft-border-primary)]">
-                            <div className="flex items-center gap-2">
-                                <select
-                                    value={pageSize}
-                                    onChange={(e) => setPageSize(Number(e.target.value))}
-                                    className="h-8 px-2 border border-[var(--ft-border-primary)] rounded-[var(--ft-radius-md)] text-[13px] text-[var(--ft-text-secondary)] bg-[var(--ft-bg-primary)] focus:outline-none"
-                                >
-                                    <option value={25}>25 / page</option>
-                                    <option value={50}>50 / page</option>
-                                    <option value={100}>100 / page</option>
-                                </select>
-                            </div>
-
-                            <div className="flex items-center gap-1">
-                                <CoreButton variant="tertiary" size="xs">
-                                    <ChevronLeft className="w-4 h-4" />
-                                </CoreButton>
-                                <span className="px-3 text-[13px] font-medium text-[var(--ft-text-primary)]">
-                                    {currentPage}
-                                </span>
-                                <CoreButton variant="tertiary" size="xs">
-                                    <ChevronRight className="w-4 h-4" />
-                                </CoreButton>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="text"
-                                    placeholder="페이지 입력"
-                                    className="w-20 h-8 px-2 border border-[var(--ft-border-primary)] rounded-[var(--ft-radius-md)] text-[13px] text-[var(--ft-text-secondary)] placeholder:text-[var(--ft-text-disabled)] focus:outline-none"
-                                />
-                                <CoreButton variant="primary" size="xs">
-                                    이동
-                                </CoreButton>
-                            </div>
-                        </div>
-                    </div>
+                    <ContentGrid
+                        contents={contentRows}
+                        onSelectionChange={setSelectedContents}
+                    />
                 )}
 
                 {/* Reports Tab Placeholder */}
@@ -557,6 +429,6 @@ export function CampaignDetail({ campaign, influencers, contents, reactionAutoma
                     />
                 )}
             </div>
-        </div>
+        </div >
     );
 }
