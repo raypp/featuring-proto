@@ -1,418 +1,438 @@
-import { useState } from "react";
-import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, FileText, Upload, DollarSign } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import { AgGridReact } from "ag-grid-react";
+import {
+    ColDef,
+    CellValueChangedEvent,
+    ModuleRegistry,
+    AllCommunityModule,
+    ICellRendererParams
+} from "ag-grid-community";
+import { customAgGridTheme } from "../utils/agGridTheme";
+
+// Custom Theme Definition
+
+
+import { Plus, Search } from "lucide-react";
 import { Campaign } from "../types";
-import { CoreButton, CoreDot, CoreTag, CoreDropdown, CoreDropdownItem } from "../../design-system";
+import { CoreButton, CoreTag, CoreDot } from "../../design-system";
+
+// Register AG Grid Community modules
+ModuleRegistry.registerModules([AllCommunityModule]);
+
+// Extended Campaign type for grid
+interface CampaignGridRow extends Campaign {
+    kpiUsageRate?: string;
+    cpvAchievementRate?: string;
+    memo?: string;
+}
+
+// Mock data
+const MOCK_CAMPAIGNS: CampaignGridRow[] = [
+    {
+        id: 1,
+        name: "25.03 다이슨 에어랩 멀티 스타일러 캠페인",
+        description: "헤어케어 제품 브랜딩 시딩 팀 인플루언서 참여",
+        status: "running",
+        tags: ["Sponsored Content", "Ambassadors"],
+        startDate: "25.12.26",
+        endDate: "26.01.26",
+        campaignType: "어필리에이트",
+        brandName: "다이슨",
+        contentCount: 0,
+        secondaryUsageCount: 0,
+        budget: 20000000,
+        platform: "instagram",
+        createdAt: "2025-01-01",
+        lastModified: "2025-01-20",
+        kpiUsageRate: "0/0(0%)",
+        cpvAchievementRate: "0/0(0%)",
+        memo: ""
+    },
+    {
+        id: 2,
+        name: "25.07 디바스크 폼클렌 캠페인",
+        description: "미녀스 제품다양 시딩을 위한 인플루언서 세션",
+        status: "pending",
+        tags: ["Engagement", "Reach"],
+        startDate: "25.12.26",
+        endDate: "26.01.26",
+        campaignType: "뮤가 시딩",
+        brandName: "미녀스",
+        contentCount: 0,
+        secondaryUsageCount: 0,
+        budget: 15000000,
+        platform: "instagram",
+        createdAt: "2025-01-05",
+        lastModified: "2025-01-18",
+        kpiUsageRate: "0/0(0%)",
+        cpvAchievementRate: "1-0 | Rtr | 0",
+        memo: ""
+    },
+    {
+        id: 3,
+        name: "25.05 상수 트렌드 캠페인 전시촬영",
+        description: "100원 상수동 무기획전 촬영 예상 명소캠페인",
+        status: "drafting",
+        tags: ["UGC"],
+        startDate: "25.12.01",
+        endDate: "26.01.01",
+        campaignType: "오프라인/팝업",
+        brandName: "",
+        contentCount: 0,
+        secondaryUsageCount: 0,
+        createdAt: "2025-01-10",
+        lastModified: "2025-01-15",
+        kpiUsageRate: "0(0%)/0(0%)",
+        cpvAchievementRate: "",
+        memo: ""
+    },
+    {
+        id: 4,
+        name: "25.09 가을 겨울 신상 브랜드론",
+        description: "D2C 패션 아이템 새롭게 바이럴까진 20TV 광고 제작",
+        status: "completed",
+        tags: ["KOLs"],
+        startDate: "25.12.01",
+        endDate: "26.01.01",
+        campaignType: "노스폰서쉽",
+        brandName: "",
+        contentCount: 0,
+        secondaryUsageCount: 0,
+        createdAt: "2025-01-01",
+        lastModified: "2025-01-14",
+        kpiUsageRate: "0(0%)/0(0%)",
+        cpvAchievementRate: "",
+        memo: ""
+    }
+];
 
 interface CampaignManagementProps {
-    campaigns: Campaign[];
+    campaigns?: CampaignGridRow[];
     onNavigate: (view: string) => void;
     onCreateCampaign: () => void;
 }
 
-type TabType = 'all' | 'drafting' | 'pending' | 'running' | 'completed' | 'archived';
-
-const CAMPAIGN_TYPES = ['전체 캠페인 유형', '어필리에이트', '뮤가 시딩', '오프라인/팝업', '노스폰서쉽'] as const;
-
-export function CampaignManagement({ campaigns, onNavigate, onCreateCampaign }: CampaignManagementProps) {
-    const [activeTab, setActiveTab] = useState<TabType>('all');
-    const [selectedType, setSelectedType] = useState<string>('전체 캠페인 유형');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [pageSize, setPageSize] = useState(50);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
-
-    // Filter campaigns based on tab, type, and search
-    const filteredCampaigns = campaigns.filter(campaign => {
-        // Tab filter
-        if (activeTab !== 'all' && campaign.status !== activeTab) return false;
-
-        // Type filter
-        if (selectedType !== '전체 캠페인 유형' && campaign.campaignType !== selectedType) return false;
-
-        // Search filter
-        if (searchQuery && !campaign.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-
-        return true;
-    });
-
-    // Count by status
-    const counts = {
-        drafting: campaigns.filter(c => c.status === 'drafting').length,
-        pending: campaigns.filter(c => c.status === 'pending').length,
-        running: campaigns.filter(c => c.status === 'running').length,
-        completed: campaigns.filter(c => c.status === 'completed').length,
-        archived: campaigns.filter(c => c.status === 'archived').length,
+// Status Badge Cell Renderer
+const StatusCellRenderer = (params: ICellRendererParams<CampaignGridRow>) => {
+    const status = params.value as Campaign["status"];
+    const statusConfig: Record<Campaign["status"], { color: "gray" | "purple" | "green"; label: string }> = {
+        drafting: { color: "gray", label: "작성 중" },
+        pending: { color: "purple", label: "진행 예정" },
+        running: { color: "green", label: "진행 중" },
+        completed: { color: "gray", label: "완료" },
+        archived: { color: "gray", label: "보관됨" }
     };
-
-    // Calculate totals
-    const totalCampaigns = campaigns.length;
-    const totalContents = campaigns.reduce((sum, c) => sum + c.contentCount, 0);
-    const totalBudget = campaigns.reduce((sum, c) => sum + (c.budget || 0), 0);
-
-    const formatCurrency = (value: number) => {
-        return value.toLocaleString('ko-KR') + ' 원';
-    };
-
-    const getStatusDisplay = (status: Campaign['status']) => {
-        switch (status) {
-            case 'drafting':
-                return { color: 'gray' as const, label: '작성 중' };
-            case 'pending':
-                return { color: 'purple' as const, label: '진행 예정' };
-            case 'running':
-                return { color: 'green' as const, label: '진행 중' };
-            case 'completed':
-                return { color: 'gray' as const, label: '완료' };
-            case 'archived':
-                return { color: 'gray' as const, label: '보관됨' };
-            default:
-                return { color: 'gray' as const, label: status };
-        }
-    };
-
-    const getTagColor = (tag: Campaign['tags'][number]) => {
-        switch (tag) {
-            case 'Sponsored Content':
-                return 'primary' as const;
-            case 'Ambassadors':
-                return 'blue' as const;
-            case 'Engagement':
-                return 'teal' as const;
-            case 'Reach':
-                return 'orange' as const;
-            case 'UGC':
-                return 'gray' as const;
-            case 'KOLs':
-                return 'indigo' as const;
-            default:
-                return 'gray' as const;
-        }
-    };
-
-    const getPlatformIcon = (platform?: Campaign['platform']) => {
-        switch (platform) {
-            case 'instagram':
-                return '📷';
-            case 'tiktok':
-                return '🎵';
-            case 'youtube':
-                return '▶️';
-            default:
-                return null;
-        }
-    };
+    const config = statusConfig[status] || { color: "gray", label: status };
 
     return (
-        <div className="flex flex-col h-full">
-            {/* Page Header */}
-            <div className="px-6 py-4 border-b border-[var(--ft-border-primary)] bg-[var(--ft-bg-primary)]">
-                <h1 className="text-lg font-medium text-[var(--ft-text-primary)]">
-                    캠페인 관리
-                </h1>
+        <div className="flex items-center gap-1.5">
+            <CoreDot size="sm" color={config.color} />
+            <span className="text-sm">{config.label}</span>
+        </div>
+    );
+};
+
+// Campaign Type Tag Renderer
+const TypeCellRenderer = (params: ICellRendererParams<CampaignGridRow>) => {
+    const type = params.value as string;
+    if (!type) return <span className="text-gray-400">-</span>;
+    return <CoreTag colorType="gray" size="sm">{type}</CoreTag>;
+};
+
+// Platform Icon Renderer
+const PlatformCellRenderer = (params: ICellRendererParams<CampaignGridRow>) => {
+    const platform = params.value as Campaign["platform"];
+    const icons: Record<string, string> = {
+        instagram: "📷",
+        tiktok: "🎵",
+        youtube: "▶️"
+    };
+    return <span className="text-lg">{icons[platform || ""] || "-"}</span>;
+};
+
+// Tags Renderer
+const TagsCellRenderer = (params: ICellRendererParams<CampaignGridRow>) => {
+    const tags = params.value as string[];
+    if (!tags || tags.length === 0) return <span className="text-gray-400">-</span>;
+
+    return (
+        <div className="flex flex-wrap gap-1">
+            {tags.slice(0, 2).map((tag, idx) => (
+                <CoreTag key={idx} colorType="primary" size="xs">{tag}</CoreTag>
+            ))}
+            {tags.length > 2 && (
+                <span className="text-xs text-gray-500">+{tags.length - 2}</span>
+            )}
+        </div>
+    );
+};
+
+// Currency Renderer
+const CurrencyCellRenderer = (params: ICellRendererParams<CampaignGridRow>) => {
+    const value = params.value as number;
+    if (!value) return <span className="text-gray-400">-</span>;
+
+    const formatted = value >= 10000
+        ? `${(value / 10000).toLocaleString()}만원`
+        : `${value.toLocaleString()}원`;
+
+    return <span>{formatted}</span>;
+};
+
+export function CampaignManagement({
+    campaigns = MOCK_CAMPAIGNS,
+    onNavigate,
+    onCreateCampaign
+}: CampaignManagementProps) {
+    const [rowData, setRowData] = useState<CampaignGridRow[]>(campaigns);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [activeTab, setActiveTab] = useState<"all" | "running" | "pending" | "completed">("all");
+
+    // Filter campaigns based on tab and search
+    const filteredData = useMemo(() => {
+        let filtered = rowData;
+
+        // Filter by tab
+        if (activeTab === "running") {
+            filtered = filtered.filter(c => c.status === "running");
+        } else if (activeTab === "pending") {
+            filtered = filtered.filter(c => c.status === "pending" || c.status === "drafting");
+        } else if (activeTab === "completed") {
+            filtered = filtered.filter(c => c.status === "completed" || c.status === "archived");
+        }
+
+        // Filter by search
+        if (searchTerm) {
+            filtered = filtered.filter(c =>
+                c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                c.brandName?.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
+
+        return filtered;
+    }, [rowData, activeTab, searchTerm]);
+
+    // Stats
+    const stats = useMemo(() => ({
+        total: rowData.length,
+        running: rowData.filter(c => c.status === "running").length,
+        pending: rowData.filter(c => c.status === "pending" || c.status === "drafting").length,
+        completed: rowData.filter(c => c.status === "completed" || c.status === "archived").length
+    }), [rowData]);
+
+    // Column definitions
+    const columnDefs = useMemo<ColDef<CampaignGridRow>[]>(() => [
+        {
+            field: "name",
+            headerName: "캠페인명",
+            flex: 2,
+            minWidth: 280,
+            cellRenderer: (params: ICellRendererParams<CampaignGridRow>) => (
+                <div className="py-1">
+                    <p className="font-medium text-gray-900 truncate">{params.value}</p>
+                    <p className="text-xs text-gray-500 truncate">{params.data?.description}</p>
+                </div>
+            ),
+            onCellClicked: (params) => {
+                if (params.data) {
+                    onNavigate(`campaign-detail-${params.data.id}`);
+                }
+            },
+            cellStyle: { cursor: "pointer" }
+        },
+        {
+            field: "status",
+            headerName: "상태",
+            width: 100,
+            cellRenderer: StatusCellRenderer
+        },
+        {
+            field: "campaignType",
+            headerName: "유형",
+            width: 120,
+            cellRenderer: TypeCellRenderer
+        },
+        {
+            headerName: "캠페인 기간",
+            width: 150,
+            valueGetter: (params) => {
+                if (!params.data?.startDate || !params.data?.endDate) return "-";
+                return `${params.data.startDate} ~ ${params.data.endDate}`;
+            }
+        },
+        {
+            field: "platform",
+            headerName: "배너/이미지",
+            width: 100,
+            cellRenderer: PlatformCellRenderer
+        },
+        {
+            field: "tags",
+            headerName: "2차 활용관리",
+            width: 180,
+            cellRenderer: TagsCellRenderer
+        },
+        {
+            field: "contentCount",
+            headerName: "콘텐츠 수",
+            width: 100,
+            cellRenderer: (params: ICellRendererParams<CampaignGridRow>) => (
+                <span>{params.value || 0}</span>
+            )
+        },
+        {
+            field: "budget",
+            headerName: "예산",
+            width: 120,
+            cellRenderer: CurrencyCellRenderer
+        },
+        {
+            field: "kpiUsageRate",
+            headerName: "결과 KPI/사용률",
+            width: 130
+        },
+        {
+            field: "cpvAchievementRate",
+            headerName: "배포/CPV달성률",
+            width: 140
+        },
+        {
+            field: "memo",
+            headerName: "비고",
+            width: 150,
+            editable: true
+        }
+    ], [onNavigate]);
+
+    // Default column settings
+    const defaultColDef = useMemo<ColDef>(() => ({
+        sortable: true,
+        resizable: true,
+        suppressMovable: true
+    }), []);
+
+    // Handle cell value change
+    const handleCellValueChanged = useCallback((event: CellValueChangedEvent<CampaignGridRow>) => {
+        const { data, colDef, newValue } = event;
+        if (!data || !colDef.field) return;
+
+        setRowData(prev =>
+            prev.map(row =>
+                row.id === data.id
+                    ? { ...row, [colDef.field as keyof CampaignGridRow]: newValue }
+                    : row
+            )
+        );
+
+        // TODO: Future server save
+        console.log(`Updated ${colDef.field} for campaign ${data.name}: ${newValue}`);
+    }, []);
+
+    return (
+        <div className="h-full flex flex-col bg-[var(--ft-bg-secondary)]">
+            {/* Header */}
+            <div className="px-6 py-4 bg-[var(--ft-bg-primary)] border-b border-[var(--ft-border-primary)]">
+                <h1 className="text-lg font-semibold text-[var(--ft-text-primary)]">캠페인 관리</h1>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 p-6 overflow-auto">
-                {/* Stats Cards */}
-                <div className="grid grid-cols-3 gap-6 mb-6">
-                    <div className="bg-[var(--ft-bg-primary)] rounded-[var(--ft-radius-lg)] border border-[var(--ft-border-primary)] p-5">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="w-8 h-8 bg-[var(--ft-color-primary-50)] rounded-[var(--ft-radius-md)] flex items-center justify-center">
-                                <FileText className="w-4 h-4 text-[var(--ft-color-primary-600)]" />
-                            </div>
-                            <span className="text-sm text-[var(--ft-text-secondary)]">전체 캠페인 수</span>
-                        </div>
-                        <p className="text-2xl font-bold text-[var(--ft-text-primary)]">
-                            {totalCampaigns}
-                            <span className="text-sm font-normal text-[var(--ft-text-disabled)] ml-1">/100 개</span>
-                        </p>
-                    </div>
-
-                    <div className="bg-[var(--ft-bg-primary)] rounded-[var(--ft-radius-lg)] border border-[var(--ft-border-primary)] p-5">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="w-8 h-8 bg-[var(--ft-color-green-50)] rounded-[var(--ft-radius-md)] flex items-center justify-center">
-                                <Upload className="w-4 h-4 text-[var(--ft-color-green-600)]" />
-                            </div>
-                            <span className="text-sm text-[var(--ft-text-secondary)]">업로드된 콘텐츠 수</span>
-                        </div>
-                        <p className="text-2xl font-bold text-[var(--ft-text-primary)]">
-                            {totalContents}
-                            <span className="text-sm font-normal text-[var(--ft-text-disabled)] ml-1">개</span>
-                        </p>
-                    </div>
-
-                    <div className="bg-[var(--ft-bg-primary)] rounded-[var(--ft-radius-lg)] border border-[var(--ft-border-primary)] p-5">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="w-8 h-8 bg-[var(--ft-color-orange-50)] rounded-[var(--ft-radius-md)] flex items-center justify-center">
-                                <DollarSign className="w-4 h-4 text-[var(--ft-color-orange-500)]" />
-                            </div>
-                            <span className="text-sm text-[var(--ft-text-secondary)]">총 광고비</span>
-                        </div>
-                        <p className="text-2xl font-bold text-[var(--ft-text-primary)]">
-                            {formatCurrency(totalBudget)}
-                        </p>
-                    </div>
+            {/* Stats Cards */}
+            <div className="px-6 py-4 flex gap-4">
+                <div className="flex-1 bg-white rounded-lg border border-gray-200 p-4">
+                    <p className="text-xs text-gray-500">진행 · 예정중</p>
+                    <p className="text-2xl font-bold mt-1">{stats.total}<span className="text-sm font-normal text-gray-400">개(s)</span></p>
                 </div>
+                <div className="flex-1 bg-white rounded-lg border border-gray-200 p-4">
+                    <p className="text-xs text-gray-500">+ 진행중</p>
+                    <p className="text-2xl font-bold mt-1">{stats.running}<span className="text-sm font-normal text-gray-400">건</span></p>
+                </div>
+                <div className="flex-1 bg-white rounded-lg border border-gray-200 p-4">
+                    <p className="text-xs text-gray-500">+ 예정</p>
+                    <p className="text-2xl font-bold mt-1">{stats.pending}<span className="text-sm font-normal text-gray-400">건</span></p>
+                </div>
+            </div>
 
-                {/* Tabs */}
-                <div className="flex gap-4 mb-4 border-b border-[var(--ft-border-primary)]">
+            {/* Filters & Actions */}
+            <div className="px-6 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    {/* Tabs */}
                     <button
-                        onClick={() => setActiveTab('all')}
-                        className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'all'
-                            ? 'text-[var(--ft-text-primary)] border-[var(--ft-text-primary)]'
-                            : 'text-[var(--ft-text-disabled)] border-transparent hover:text-[var(--ft-text-secondary)]'
+                        onClick={() => setActiveTab("all")}
+                        className={`px-3 py-1.5 text-sm rounded ${activeTab === "all"
+                            ? "bg-gray-900 text-white"
+                            : "text-gray-600 hover:bg-gray-100"
                             }`}
                     >
-                        전체 {campaigns.length}
+                        전체
                     </button>
                     <button
-                        onClick={() => setActiveTab('drafting')}
-                        className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'drafting'
-                            ? 'text-[var(--ft-text-primary)] border-[var(--ft-text-primary)]'
-                            : 'text-[var(--ft-text-disabled)] border-transparent hover:text-[var(--ft-text-secondary)]'
+                        onClick={() => setActiveTab("running")}
+                        className={`px-3 py-1.5 text-sm rounded ${activeTab === "running"
+                            ? "bg-gray-900 text-white"
+                            : "text-gray-600 hover:bg-gray-100"
                             }`}
                     >
-                        작성 중 {counts.drafting}
+                        태그 ▾
                     </button>
                     <button
-                        onClick={() => setActiveTab('pending')}
-                        className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'pending'
-                            ? 'text-[var(--ft-text-primary)] border-[var(--ft-text-primary)]'
-                            : 'text-[var(--ft-text-disabled)] border-transparent hover:text-[var(--ft-text-secondary)]'
+                        onClick={() => setActiveTab("pending")}
+                        className={`px-3 py-1.5 text-sm rounded ${activeTab === "pending"
+                            ? "bg-gray-900 text-white"
+                            : "text-gray-600 hover:bg-gray-100"
                             }`}
                     >
-                        진행 대기 {counts.pending}
+                        캠페인 상태 ▾
                     </button>
-                    <button
-                        onClick={() => setActiveTab('running')}
-                        className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'running'
-                            ? 'text-[var(--ft-text-primary)] border-[var(--ft-text-primary)]'
-                            : 'text-[var(--ft-text-disabled)] border-transparent hover:text-[var(--ft-text-secondary)]'
-                            }`}
-                    >
-                        진행 중 {counts.running}
+                    <button className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded">
+                        + 캠페인 유형 ▾
                     </button>
-                    <button
-                        onClick={() => setActiveTab('completed')}
-                        className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'completed'
-                            ? 'text-[var(--ft-text-primary)] border-[var(--ft-text-primary)]'
-                            : 'text-[var(--ft-text-disabled)] border-transparent hover:text-[var(--ft-text-secondary)]'
-                            }`}
-                    >
-                        진행 완료 {counts.completed}
+                    <button className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded">
+                        + 콘텐츠 타입/개수 ▾
                     </button>
-                    <button
-                        onClick={() => setActiveTab('archived')}
-                        className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'archived'
-                            ? 'text-[var(--ft-text-primary)] border-[var(--ft-text-primary)]'
-                            : 'text-[var(--ft-text-disabled)] border-transparent hover:text-[var(--ft-text-secondary)]'
-                            }`}
-                    >
-                        보관됨
+                    <button className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded">
+                        + 날짜기간 ▾
                     </button>
                 </div>
 
-                {/* Filters & Actions */}
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                        {/* Campaign Type Dropdown */}
-                        <CoreDropdown
-                            open={typeDropdownOpen}
-                            onOpenChange={setTypeDropdownOpen}
-                            trigger={
-                                <button className="flex items-center gap-2 h-9 px-3 bg-[var(--ft-bg-primary)] border border-[var(--ft-border-primary)] rounded-[var(--ft-radius-md)] text-sm text-[var(--ft-text-secondary)] hover:bg-[var(--ft-interactive-tertiary-hover)] transition-colors">
-                                    {selectedType}
-                                    <ChevronDown className="w-4 h-4" />
-                                </button>
-                            }
-                            width={180}
-                        >
-                            {CAMPAIGN_TYPES.map((type) => (
-                                <CoreDropdownItem
-                                    key={type}
-                                    selected={selectedType === type}
-                                    onClick={() => {
-                                        setSelectedType(type);
-                                        setTypeDropdownOpen(false);
-                                    }}
-                                >
-                                    {type}
-                                </CoreDropdownItem>
-                            ))}
-                        </CoreDropdown>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        {/* Search */}
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--ft-text-disabled)]" />
-                            <input
-                                type="text"
-                                placeholder="캠페인 검색"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="h-9 pl-9 pr-4 w-[200px] bg-[var(--ft-bg-primary)] border border-[var(--ft-border-primary)] rounded-[var(--ft-radius-md)] text-sm text-[var(--ft-text-primary)] placeholder:text-[var(--ft-text-disabled)] focus:outline-none focus:border-[var(--ft-border-focus)]"
-                            />
-                        </div>
-
-                        {/* Create Button */}
-                        <CoreButton
-                            variant="primary"
-                            size="sm"
-                            leftIcon={<Plus className="w-4 h-4" />}
-                            onClick={onCreateCampaign}
-                        >
-                            새 캠페인 시작
-                        </CoreButton>
-                    </div>
-                </div>
-
-                {/* Table */}
-                <div className="bg-[var(--ft-bg-primary)] rounded-[var(--ft-radius-lg)] border border-[var(--ft-border-secondary)] overflow-hidden">
-                    {/* Table Header */}
-                    <div className="grid grid-cols-[1fr_100px_180px_150px_100px_100px_80px_40px] items-center h-10 border-b border-[var(--ft-border-secondary)] bg-[var(--ft-bg-secondary)] px-4">
-                        <span className="text-[13px] text-[var(--ft-text-secondary)]">캠페인명</span>
-                        <span className="text-[13px] text-[var(--ft-text-secondary)]">상태</span>
-                        <span className="text-[13px] text-[var(--ft-text-secondary)]">태그</span>
-                        <span className="text-[13px] text-[var(--ft-text-secondary)]">캠페인 기간</span>
-                        <span className="text-[13px] text-[var(--ft-text-secondary)]">캠페인 유형</span>
-                        <span className="text-[13px] text-[var(--ft-text-secondary)]">브랜드명</span>
-                        <span className="text-[13px] text-[var(--ft-text-secondary)]">2차 활용(개)</span>
-                        <span></span>
-                    </div>
-
-                    {/* Table Body */}
-                    {filteredCampaigns.length === 0 ? (
-                        <div className="py-16 text-center">
-                            <p className="text-sm text-[var(--ft-text-disabled)]">
-                                캠페인이 없습니다
-                            </p>
-                        </div>
-                    ) : (
-                        <div>
-                            {filteredCampaigns.map((campaign) => {
-                                const statusDisplay = getStatusDisplay(campaign.status);
-                                return (
-                                    <div
-                                        key={campaign.id}
-                                        className="grid grid-cols-[1fr_100px_180px_150px_100px_100px_80px_40px] items-center min-h-[56px] border-b border-[var(--ft-border-primary)] last:border-b-0 hover:bg-[var(--ft-interactive-tertiary-hover)] cursor-pointer transition-colors px-4"
-                                        onClick={() => onNavigate(`campaign-detail-${campaign.id}`)}
-                                    >
-                                        {/* Campaign Name */}
-                                        <div className="py-3">
-                                            <p className="text-sm font-medium text-[var(--ft-text-primary)] mb-0.5">
-                                                {campaign.name}
-                                            </p>
-                                            {campaign.description && (
-                                                <p className="text-xs text-[var(--ft-text-disabled)] truncate max-w-[280px]">
-                                                    {campaign.description}
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        {/* Status */}
-                                        <div className="flex items-center gap-1.5">
-                                            <CoreDot size="sm" color={statusDisplay.color} />
-                                            <span className={`text-[13px] ${statusDisplay.color === 'purple' ? 'text-[var(--ft-color-primary-600)]' :
-                                                statusDisplay.color === 'green' ? 'text-[var(--ft-color-green-600)]' :
-                                                    'text-[var(--ft-text-secondary)]'
-                                                }`}>
-                                                {statusDisplay.label}
-                                            </span>
-                                        </div>
-
-                                        {/* Tags */}
-                                        <div className="flex items-center gap-1 flex-wrap">
-                                            {campaign.tags.slice(0, 2).map((tag) => (
-                                                <CoreTag key={tag} colorType={getTagColor(tag)} size="xs">
-                                                    {tag}
-                                                </CoreTag>
-                                            ))}
-                                            {campaign.tags.length > 2 && (
-                                                <span className="text-xs text-[var(--ft-text-disabled)]">
-                                                    +{campaign.tags.length - 2}
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        {/* Period */}
-                                        <span className="text-[13px] text-[var(--ft-text-secondary)]">
-                                            {campaign.startDate} - {campaign.endDate}
-                                        </span>
-
-                                        {/* Type */}
-                                        <span className="text-[13px] text-[var(--ft-text-secondary)]">
-                                            {campaign.campaignType}
-                                        </span>
-
-                                        {/* Brand */}
-                                        <span className="text-[13px] text-[var(--ft-text-secondary)]">
-                                            {campaign.brandName}
-                                        </span>
-
-                                        {/* Secondary Usage */}
-                                        <div className="flex items-center gap-1">
-                                            <span className="text-[13px] text-[var(--ft-text-secondary)]">
-                                                {campaign.secondaryUsageCount}
-                                            </span>
-                                            {campaign.platform && (
-                                                <span className="text-sm">{getPlatformIcon(campaign.platform)}</span>
-                                            )}
-                                        </div>
-
-                                        {/* Actions */}
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                // TODO: Show dropdown menu
-                                            }}
-                                            className="w-7 h-7 flex items-center justify-center rounded-[var(--ft-radius-md)] hover:bg-[var(--ft-interactive-secondary-hover)] transition-colors"
-                                        >
-                                            <MoreHorizontal className="w-4 h-4 text-[var(--ft-text-disabled)]" />
-                                        </button>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-
-                {/* Pagination */}
-                <div className="flex items-center justify-between mt-4">
-                    <div className="flex items-center gap-2">
-                        <select
-                            value={pageSize}
-                            onChange={(e) => setPageSize(Number(e.target.value))}
-                            className="h-8 px-2 border border-[var(--ft-border-primary)] rounded-[var(--ft-radius-md)] text-[13px] text-[var(--ft-text-secondary)] bg-[var(--ft-bg-primary)] focus:outline-none focus:border-[var(--ft-border-focus)]"
-                        >
-                            <option value={20}>20 / page</option>
-                            <option value={50}>50 / page</option>
-                            <option value={100}>100 / page</option>
-                        </select>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                        <CoreButton variant="tertiary" size="xs">
-                            <ChevronLeft className="w-4 h-4" />
-                        </CoreButton>
-                        <span className="px-3 text-[13px] font-medium text-[var(--ft-text-primary)]">
-                            {currentPage}
-                        </span>
-                        <CoreButton variant="tertiary" size="xs">
-                            <ChevronRight className="w-4 h-4" />
-                        </CoreButton>
-                    </div>
-
-                    <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                    {/* Search */}
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input
                             type="text"
-                            placeholder="페이지 입력"
-                            className="w-24 h-8 px-2 border border-[var(--ft-border-primary)] rounded-[var(--ft-radius-md)] text-[13px] text-[var(--ft-text-secondary)] placeholder:text-[var(--ft-text-disabled)] focus:outline-none focus:border-[var(--ft-border-focus)]"
+                            placeholder="검색으로 알려 드릴께요 검색"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-purple-500"
                         />
-                        <CoreButton variant="primary" size="xs">
-                            이동
-                        </CoreButton>
                     </div>
+                    <CoreButton
+                        variant="primary"
+                        size="md"
+                        leftIcon={<Plus className="w-4 h-4" />}
+                        onClick={onCreateCampaign}
+                    >
+                        + 새 캠페인 시작
+                    </CoreButton>
+                </div>
+            </div>
+
+            {/* AG Grid Table */}
+            <div className="flex-1 px-6 pb-6">
+                <div className="h-full bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    <AgGridReact<CampaignGridRow>
+                        theme={customAgGridTheme}
+                        rowData={filteredData}
+                        columnDefs={columnDefs}
+                        defaultColDef={defaultColDef}
+                        onCellValueChanged={handleCellValueChanged}
+                        rowHeight={60}
+                        headerHeight={44}
+                        pagination={true}
+                        paginationPageSize={50}
+                        paginationPageSizeSelector={[25, 50, 100]}
+                        animateRows={true}
+                        suppressCellFocus={false}
+                    />
                 </div>
             </div>
         </div>

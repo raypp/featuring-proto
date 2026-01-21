@@ -3,13 +3,14 @@ import {
     Search, ChevronDown, Send, RefreshCw, X, Check,
     CheckCircle, Clock, XCircle, AlertCircle, ExternalLink,
     Settings, Wifi, WifiOff, Eye, Copy, Link, Upload,
-    AlertTriangle, FileText, Filter
+    AlertTriangle, FileText, Filter, Plus
 } from "lucide-react";
 import { CoreButton, CoreAvatar, CoreStatusBadge } from "../../design-system";
 import { AutomationInfluencer, DMTemplate, CTALink } from "../types";
 import { DeliveryLogDrawer } from "./DeliveryLogDrawer";
 import { DeliveryPreviewModal } from "./DeliveryPreviewModal";
 import { BulkUrlInputModal } from "./BulkUrlInputModal";
+import { AddInfluencerModal } from "./AddInfluencerModal";
 
 interface InfluencerDeliveryTableProps {
     influencers: AutomationInfluencer[];
@@ -20,6 +21,7 @@ interface InfluencerDeliveryTableProps {
     onDeliver: (ids: number[]) => void;
     onRetry: (ids: number[]) => void;
     onCancel: (ids: number[]) => void;
+    onAddInfluencer?: (influencers: Partial<AutomationInfluencer>[]) => void;
 }
 
 interface InfluencerWithTemplate extends AutomationInfluencer {
@@ -74,7 +76,8 @@ export function InfluencerDeliveryTable({
     onOpenTemplateModal,
     onDeliver,
     onRetry,
-    onCancel
+    onCancel,
+    onAddInfluencer
 }: InfluencerDeliveryTableProps) {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -99,6 +102,20 @@ export function InfluencerDeliveryTable({
     const [bulkUrlModalOpen, setBulkUrlModalOpen] = useState(false);
     const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
     const [showValidationModal, setShowValidationModal] = useState(false);
+    const [addInfluencerModalOpen, setAddInfluencerModalOpen] = useState(false);
+
+    // Add influencer handler
+    const handleAddInfluencers = (newInfluencers: Partial<AutomationInfluencer>[]) => {
+        const newData = newInfluencers.map((inf, idx) => ({
+            ...inf,
+            id: Date.now() + idx,
+            selectedTemplateId: undefined,
+            variableValues: {},
+            deliveryStatus: undefined,
+        })) as InfluencerWithTemplate[];
+        setLocalData(prev => [...prev, ...newData]);
+        onAddInfluencer?.(newInfluencers);
+    };
 
     // Filter & Stats
     const filteredData = localData.filter(inf => {
@@ -342,6 +359,14 @@ export function InfluencerDeliveryTable({
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
+                        <CoreButton
+                            variant="secondary"
+                            size="md"
+                            leftIcon={<Plus className="w-4 h-4" />}
+                            onClick={() => setAddInfluencerModalOpen(true)}
+                        >
+                            인플루언서 추가
+                        </CoreButton>
                         <CoreButton variant="secondary" size="md" leftIcon={<Settings className="w-4 h-4" />} onClick={onOpenTemplateModal}>
                             템플릿 관리
                         </CoreButton>
@@ -766,6 +791,13 @@ export function InfluencerDeliveryTable({
                     </div>
                 </>
             )}
+
+            {/* Add Influencer Modal */}
+            <AddInfluencerModal
+                isOpen={addInfluencerModalOpen}
+                onClose={() => setAddInfluencerModalOpen(false)}
+                onAdd={handleAddInfluencers}
+            />
         </div>
     );
 }
