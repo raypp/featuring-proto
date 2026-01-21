@@ -12,6 +12,7 @@ import {
 import { ChevronDown, ChevronRight, ExternalLink, Image, RefreshCw, Trash2, UserPlus, Download, LayoutGrid, Check } from "lucide-react";
 import { CampaignInfluencer } from "../types";
 import { CoreAvatar, CoreTag, CoreButton, CoreStatusBadge } from "../../design-system";
+import { InfluencerManagementDrawer, InfluencerProfile } from "./InfluencerManagementDrawer";
 
 // Register modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -31,9 +32,9 @@ interface InfluencerGridProps {
     onAddInfluencer?: () => void;
 }
 
-// Full Width Renderer (Detail View)
+// Full Width Renderer (Detail View) - Matching Figma Design
 const DetailCellRenderer = (params: ICellRendererParams & { data: InfluencerGridRow }) => {
-    // Mock content list based on design
+    // Mock content list based on Figma design
     const contentItems = [
         {
             id: 1,
@@ -41,52 +42,81 @@ const DetailCellRenderer = (params: ICellRendererParams & { data: InfluencerGrid
             title: "LE SSERAFIM (르세라핌) 'HOT' OFFICIAL MV",
             date: "2025-06-11",
             type: "youtube",
-            url: "https://youtube.com/..."
+            url: "https://www.instagram.com/p/DLL-dssRNCG/"
         },
         {
             id: 2,
+            thumbnail: null,
             title: "나는 무슨 안경만두일까? @bibigo_kr...",
             date: "2025-06-11",
             type: "instagram",
-            url: "https://instagram.com/..."
+            url: "https://www.instagram.com/p/ABCDEFG/"
         }
     ];
 
-    return (
-        <div className="w-full bg-gray-50 p-4 border-t border-gray-100">
-            <div className="pl-[50px]"> {/* Indent to align with Account column (Starts after 50px checkbox) */}
-                <div className="space-y-3">
-                    {contentItems.map(item => (
-                        <div key={item.id} className="flex items-start gap-4">
-                            {/* Thumbnail or Icon */}
-                            <div className="w-10 h-10 rounded bg-gray-200 flex-shrink-0 overflow-hidden">
-                                {item.thumbnail ? (
-                                    <img src={item.thumbnail} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                        <Image className="w-5 h-5 text-gray-400" />
-                                    </div>
-                                )}
-                            </div>
+    // Check if this row should show "no content" message
+    const hasNoContent = contentItems.length === 0;
 
-                            {/* Content Info */}
-                            <div className="flex-1">
+    return (
+        <div className="w-full bg-gray-50 py-3 border-t border-gray-100">
+            <div className="pl-[60px] pr-4"> {/* Indent to align with Account column */}
+                {hasNoContent ? (
+                    <p className="text-sm text-gray-400 py-4 text-center">등록된 콘텐츠가 없습니다.</p>
+                ) : (
+                    <div className="space-y-2">
+                        {contentItems.map(item => (
+                            <div key={item.id} className="flex items-center gap-3">
+                                {/* Thumbnail or placeholder */}
+                                <div className="w-9 h-9 rounded bg-gray-200 flex-shrink-0 overflow-hidden">
+                                    {item.thumbnail ? (
+                                        <img src={item.thumbnail} alt="" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-400 to-pink-400">
+                                            <Image className="w-4 h-4 text-white" />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Content Info - Vertical Stack */}
+                                <div className="flex flex-col">
+                                    <p className="text-xs text-gray-600 font-medium truncate max-w-[400px]">
+                                        {item.title}
+                                    </p>
+                                    <p className="text-[11px] text-gray-400 mt-0.5">{item.date}</p>
+                                </div>
+
+                                {/* Spacer */}
+                                <div className="flex-1" />
+
+                                {/* Link with platform icon */}
                                 <div className="flex items-center gap-2">
-                                    {item.type === 'instagram' && <span className="text-pink-500">📷</span>}
-                                    {item.type === 'youtube' && <span className="text-red-500">▶️</span>}
-                                    <a href={item.url} className="text-sm text-gray-700 hover:underline truncate max-w-[400px] block">
+                                    {item.type === 'instagram' && (
+                                        <img
+                                            src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg"
+                                            className="w-4 h-4"
+                                            alt="instagram"
+                                        />
+                                    )}
+                                    {item.type === 'youtube' && (
+                                        <img
+                                            src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg"
+                                            className="w-4 h-4"
+                                            alt="youtube"
+                                        />
+                                    )}
+                                    <a
+                                        href={item.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-xs text-gray-500 hover:text-blue-600 hover:underline truncate max-w-[280px]"
+                                    >
                                         {item.url}
                                     </a>
                                 </div>
-                                <p className="text-xs text-gray-500 mt-0.5">{item.date}</p>
                             </div>
-                        </div>
-                    ))}
-
-                    {contentItems.length === 0 && (
-                        <p className="text-sm text-gray-500">등록된 콘텐츠가 없습니다.</p>
-                    )}
-                </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -95,6 +125,26 @@ const DetailCellRenderer = (params: ICellRendererParams & { data: InfluencerGrid
 export function InfluencerGrid({ influencers, onSelectionChange, onAddInfluencer }: InfluencerGridProps) {
     const [gridApi, setGridApi] = useState<any>(null);
     const [expandedIds, setExpandedIds] = useState<number[]>([]);
+    const [selectedInfluencer, setSelectedInfluencer] = useState<InfluencerProfile | null>(null);
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+    // Open drawer handler
+    const handleOpenDrawer = useCallback((influencer: CampaignInfluencer) => {
+        const profile: InfluencerProfile = {
+            id: influencer.id,
+            username: influencer.username,
+            displayName: influencer.displayName,
+            profileImage: influencer.profileImage,
+            bio: '',
+            isVerified: true,
+            postsCount: 1900,
+            followersCount: influencer.followerCount || 155000,
+            followingCount: 1000,
+            categories: ['Makeup Artist', 'F&B', '일상'],
+        };
+        setSelectedInfluencer(profile);
+        setIsDrawerOpen(true);
+    }, []);
 
     // Prepare Row Data with potential Detail Rows
     // Since we can't use Master/Detail easily in Community, we use a trick:
@@ -152,11 +202,17 @@ export function InfluencerGrid({ influencers, onSelectionChange, onAddInfluencer
                         <ChevronRight className="w-4 h-4 text-gray-500" />
                     )}
                 </button>
-                <div className="flex items-center gap-3">
+                <div
+                    className="flex items-center gap-3 cursor-pointer hover:opacity-80"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenDrawer(data);
+                    }}
+                >
                     <CoreAvatar
                         src={data.profileImage}
                         name={data.displayName}
-                        size="sm" // Reverted to sm for slim look
+                        size="sm"
                     />
                     <div className="flex flex-col justify-center">
                         <div className="flex items-center gap-1">
@@ -303,6 +359,13 @@ export function InfluencerGrid({ influencers, onSelectionChange, onAddInfluencer
                     display: none;
                 }
             `}</style>
+
+            {/* Influencer Management Drawer */}
+            <InfluencerManagementDrawer
+                isOpen={isDrawerOpen}
+                onClose={() => setIsDrawerOpen(false)}
+                influencer={selectedInfluencer}
+            />
         </div>
     );
 }

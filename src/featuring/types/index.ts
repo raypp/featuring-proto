@@ -87,10 +87,15 @@ export interface Campaign {
     endDate: string;
     campaignType: CampaignType;
     brandName: string;
+    manager?: string; // 담당자
     contentCount: number;
+    contentReceivedCount?: number; // 콘텐츠 업로드 인원 (완료)
+    contentTotalCount?: number;    // 콘텐츠 업로드 인원 (전체)
     secondaryUsageCount: number;
-    budget?: number;
+    budget?: number; // 광고비
     platform?: 'instagram' | 'tiktok' | 'youtube';
+    contentTypes?: ('instagram' | 'tiktok' | 'youtube' | 'blog' | 'shorts')[]; // 콘텐츠 유형 아이콘용
+    influencerCategories?: string[]; // 인플루언서 카테고리
     createdAt: string;
     lastModified: string;
     reactionAutomationGroupId?: number;  // Links to AutomationGroup.id
