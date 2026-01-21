@@ -1,7 +1,13 @@
-import { Plus, MoreHorizontal, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { Plus, Search } from "lucide-react";
+import { CoreButton, CoreDot } from "../../design-system";
 import { AutomationGroup } from "../types";
-import { CoreButton, CoreDot, CoreTag } from "@/design-system";
+import { AgGridReact } from "ag-grid-react";
+import { ColDef, ModuleRegistry, AllCommunityModule, ICellRendererParams, SelectionOptions } from "ag-grid-community";
+import { customAgGridTheme } from "../utils/agGridTheme";
+
+// Register AG Grid Modules
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 interface AutomationGroupListProps {
     automationGroups: AutomationGroup[];
@@ -9,234 +15,193 @@ interface AutomationGroupListProps {
     onCreateGroup: () => void;
 }
 
-export function AutomationGroupList({ automationGroups, onNavigate, onCreateGroup }: AutomationGroupListProps) {
-    const [activeTab, setActiveTab] = useState<'all' | 'active' | 'archived'>('all');
-    const [selectedIds, setSelectedIds] = useState<number[]>([]);
-    const [pageSize, setPageSize] = useState(50);
-    const [currentPage, setCurrentPage] = useState(1);
+// Status Cell Renderer
+const StatusCellRenderer = (params: ICellRendererParams<AutomationGroup>) => {
+    const status = params.value as string; // 'active' | 'inactive' | 'pending' | 'running' | 'completed'
 
-    const filteredGroups = automationGroups.filter(group => {
-        if (activeTab === 'all') return true;
-        if (activeTab === 'active') return group.status === 'active';
-        if (activeTab === 'archived') return group.status === 'inactive';
-        return true;
-    });
+    let color: 'green' | 'orange' | 'gray' = 'gray';
+    let label = '완료';
 
-    const activeCount = automationGroups.filter(g => g.status === 'active').length;
-    const archivedCount = automationGroups.filter(g => g.status === 'inactive').length;
+    if (status === 'running' || status === 'active') {
+        color = 'green';
+        label = '진행 중';
+    } else if (status === 'pending') {
+        color = 'orange';
+        label = '진행 예정';
+    }
 
-    const toggleSelectAll = () => {
-        if (selectedIds.length === filteredGroups.length) {
-            setSelectedIds([]);
-        } else {
-            setSelectedIds(filteredGroups.map(g => g.id));
-        }
-    };
-
-    const toggleSelect = (id: number) => {
-        if (selectedIds.includes(id)) {
-            setSelectedIds(selectedIds.filter(i => i !== id));
-        } else {
-            setSelectedIds([...selectedIds, id]);
-        }
-    };
-
-    const getStatusBadge = (group: AutomationGroup) => {
-        if (group.templateStatus === 'deployed') {
-            return (
-                <div className="flex items-center gap-1.5">
-                    <CoreDot size="sm" color="purple" />
-                    <span className="text-[13px] text-[var(--ft-color-primary-600)]">캠페인 연동됨</span>
-                </div>
-            );
-        }
-        if (group.status === 'active') {
-            return (
-                <div className="flex items-center gap-1.5">
-                    <CoreDot size="sm" color="green" />
-                    <span className="text-[13px] text-[var(--ft-color-green-600)]">활성</span>
-                </div>
-            );
-        }
-        return null;
+    // Map color to styling
+    const colorStyles = {
+        green: 'bg-[var(--ft-color-green-50)] text-[var(--ft-color-green-700)] border-[var(--ft-color-green-200)]',
+        orange: 'bg-[var(--ft-color-orange-50)] text-[var(--ft-color-orange-700)] border-[var(--ft-color-orange-200)]',
+        gray: 'bg-[var(--ft-color-gray-50)] text-[var(--ft-color-gray-600)] border-[var(--ft-color-gray-200)]'
     };
 
     return (
-        <div className="flex flex-col h-full">
-            {/* Page Header */}
-            <div className="px-6 py-4 border-b border-[var(--ft-border-primary)] bg-[var(--ft-bg-primary)]">
-                <h1 className="text-lg font-medium text-[var(--ft-text-primary)]">
-                    반응 자동화 관리
-                </h1>
+        <div className="flex items-center gap-1.5 h-full">
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${colorStyles[color]}`}>
+                <CoreDot size="sm" color={color} className="mr-1.5" />
+                {label}
+            </span>
+        </div>
+    );
+};
+
+export function AutomationGroupList({ automationGroups, onNavigate, onCreateGroup }: AutomationGroupListProps) {
+    const [searchTerm, setSearchTerm] = useState("");
+    const [activeTab, setActiveTab] = useState<'all' | 'running' | 'completed'>('all');
+
+    // Filter Logic
+    const filteredGroups = useMemo(() => {
+        let filtered = automationGroups;
+
+        if (activeTab === 'running') {
+            filtered = filtered.filter(g => g.status === 'active' || g.status === 'running');
+        } else if (activeTab === 'completed') {
+            filtered = filtered.filter(g => g.status === 'inactive' || g.status === 'completed');
+        }
+
+        if (searchTerm) {
+            filtered = filtered.filter(g =>
+                g.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                g.campaignName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                g.productBrand?.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
+
+        return filtered;
+    }, [automationGroups, activeTab, searchTerm]);
+
+    // Column Definitions
+    const columnDefs = useMemo<ColDef<AutomationGroup>[]>(() => [
+        {
+            headerName: "No.",
+            width: 60,
+            valueGetter: (params) => {
+                return (params.node?.rowIndex ?? 0) + 1;
+            },
+            cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ft-text-disabled)' }
+        },
+        {
+            field: "name",
+            headerName: "자동화명",
+            flex: 1,
+            minWidth: 200,
+            cellRenderer: (params: ICellRendererParams<AutomationGroup>) => (
+                <div className="flex flex-col justify-center h-full">
+                    <span className="font-medium text-[var(--ft-text-primary)]">{params.value}</span>
+                </div>
+            ),
+            cellStyle: { display: 'flex', alignItems: 'center', cursor: 'pointer' },
+            onCellClicked: (params) => params.data && onNavigate(`automation-group-detail-${params.data.id}`)
+        },
+        {
+            field: "campaignName",
+            headerName: "캠페인",
+            width: 220,
+            valueFormatter: (params) => params.value || '단독',
+            cellStyle: { display: 'flex', alignItems: 'center', color: 'var(--ft-text-secondary)' }
+        },
+        {
+            field: "status",
+            headerName: "상태",
+            width: 110,
+            cellRenderer: StatusCellRenderer,
+            cellStyle: { display: 'flex', alignItems: 'center' }
+        },
+        {
+            field: "productBrand",
+            headerName: "상품/브랜드명",
+            width: 180,
+            valueFormatter: (params) => params.value || '-',
+            cellStyle: { display: 'flex', alignItems: 'center', color: 'var(--ft-text-secondary)' }
+        }
+    ], [onNavigate]);
+
+    const defaultColDef = useMemo<ColDef>(() => ({
+        sortable: true,
+        resizable: true,
+        suppressMovable: true,
+        headerClass: "bg-[var(--ft-bg-secondary)] text-[var(--ft-text-secondary)] font-medium text-xs"
+    }), []);
+
+    const selectionOptions = useMemo<SelectionOptions>(() => ({
+        mode: 'multiRow',
+        headerCheckbox: true,
+        checkboxes: true,
+        enableClickSelection: false // Only checkbox selection
+    }), []);
+
+    return (
+        <div className="h-full flex flex-col bg-[var(--ft-bg-primary)]">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-[var(--ft-border-secondary)] flex items-center justify-between">
+                <div>
+                    <h1 className="font-['Pretendard:Bold'] text-xl text-[var(--ft-text-primary)] mb-1">
+                        반응 자동화 관리
+                    </h1>
+                    <p className="text-sm text-[var(--ft-text-secondary)]">
+                        캠페인 및 단독 자동화 그룹을 관리합니다
+                    </p>
+                </div>
+                <CoreButton
+                    variant="primary"
+                    size="md"
+                    leftIcon={<Plus className="w-4 h-4" />}
+                    onClick={onCreateGroup}
+                >
+                    새 자동화 만들기
+                </CoreButton>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 p-6 overflow-auto">
-                {/* Header Row */}
+            {/* Filters */}
+            <div className="p-6 pb-4">
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-base font-medium text-[var(--ft-text-primary)]">
-                        관리 목록
-                    </h2>
-                    <CoreButton
-                        variant="primary"
-                        size="sm"
-                        leftIcon={<Plus className="w-4 h-4" />}
-                        onClick={onCreateGroup}
-                    >
-                        새 그룹 생성
-                    </CoreButton>
-                </div>
-
-                {/* Tabs */}
-                <div className="flex gap-4 mb-4 border-b border-[var(--ft-border-primary)]">
-                    <button
-                        onClick={() => setActiveTab('all')}
-                        className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'all'
-                            ? 'text-[var(--ft-text-primary)] border-[var(--ft-text-primary)]'
-                            : 'text-[var(--ft-text-disabled)] border-transparent hover:text-[var(--ft-text-secondary)]'
-                            }`}
-                    >
-                        전체 {automationGroups.length}
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('active')}
-                        className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'active'
-                            ? 'text-[var(--ft-text-primary)] border-[var(--ft-text-primary)]'
-                            : 'text-[var(--ft-text-disabled)] border-transparent hover:text-[var(--ft-text-secondary)]'
-                            }`}
-                    >
-                        사용 중 {activeCount}
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('archived')}
-                        className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'archived'
-                            ? 'text-[var(--ft-text-primary)] border-[var(--ft-text-primary)]'
-                            : 'text-[var(--ft-text-disabled)] border-transparent hover:text-[var(--ft-text-secondary)]'
-                            }`}
-                    >
-                        보관됨
-                    </button>
-                </div>
-
-                {/* Table */}
-                <div className="bg-[var(--ft-bg-primary)] rounded-[var(--ft-radius-lg)] border border-[var(--ft-border-secondary)] overflow-hidden">
-                    {/* Table Header */}
-                    <div className="flex items-center h-10 border-b border-[var(--ft-border-secondary)] bg-[var(--ft-bg-secondary)]">
-                        <div className="flex items-center gap-3 flex-1 px-4">
-                            <input
-                                type="checkbox"
-                                checked={selectedIds.length === filteredGroups.length && filteredGroups.length > 0}
-                                onChange={toggleSelectAll}
-                                className="w-4 h-4 rounded border-[var(--ft-border-secondary)] text-[var(--ft-color-primary-600)] focus:ring-[var(--ft-color-primary-500)]"
-                            />
-                            <span className="text-[13px] text-[var(--ft-text-secondary)]">
-                                목록
-                            </span>
-                            <span className="text-xs text-[var(--ft-text-disabled)]">
-                                □ {filteredGroups.length}/100
-                            </span>
-                        </div>
-                        <div className="w-[180px] px-4">
-                            <span className="text-[13px] text-[var(--ft-text-secondary)]">
-                                상태
-                            </span>
-                        </div>
+                    {/* Tabs */}
+                    <div className="flex bg-[var(--ft-bg-secondary)] p-1 rounded-lg">
+                        {(['all', 'running', 'completed'] as const).map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === tab
+                                        ? 'bg-white text-[var(--ft-text-primary)] shadow-sm'
+                                        : 'text-[var(--ft-text-secondary)] hover:text-[var(--ft-text-primary)]'
+                                    }`}
+                            >
+                                {tab === 'all' && '전체'}
+                                {tab === 'running' && '진행 중'}
+                                {tab === 'completed' && '완료'}
+                            </button>
+                        ))}
                     </div>
 
-                    {/* Table Body */}
-                    {filteredGroups.length === 0 ? (
-                        <div className="py-16 text-center">
-                            <p className="text-sm text-[var(--ft-text-disabled)]">
-                                {activeTab === 'all' ? '생성된 그룹이 없습니다' : '해당하는 그룹이 없습니다'}
-                            </p>
-                        </div>
-                    ) : (
-                        <div>
-                            {filteredGroups.map((group) => (
-                                <div
-                                    key={group.id}
-                                    className="flex items-center h-12 border-b border-[var(--ft-border-primary)] last:border-b-0 hover:bg-[var(--ft-interactive-tertiary-hover)] cursor-pointer transition-colors"
-                                    onClick={() => onNavigate(`automation-group-detail-${group.id}`)}
-                                >
-                                    <div className="flex items-center gap-3 flex-1 px-4">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedIds.includes(group.id)}
-                                            onChange={(e) => {
-                                                e.stopPropagation();
-                                                toggleSelect(group.id);
-                                            }}
-                                            onClick={(e) => e.stopPropagation()}
-                                            className="w-4 h-4 rounded border-[var(--ft-border-secondary)] text-[var(--ft-color-primary-600)] focus:ring-[var(--ft-color-primary-500)]"
-                                        />
-                                        <span className="text-sm text-[var(--ft-text-primary)]">
-                                            {group.name}
-                                        </span>
-                                        {group.linkedCampaignId && (
-                                            <CoreTag colorType="blue" size="xs">
-                                                캠페인 연결
-                                            </CoreTag>
-                                        )}
-                                        {group.templateStatus === 'deployed' && (
-                                            <CoreTag colorType="gray" size="xs">
-                                                보기 전용
-                                            </CoreTag>
-                                        )}
-                                    </div>
-                                    <div className="w-[180px] px-4 flex items-center justify-between">
-                                        {getStatusBadge(group)}
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                // TODO: Show dropdown menu
-                                            }}
-                                            className="w-7 h-7 flex items-center justify-center rounded-[var(--ft-radius-md)] hover:bg-[var(--ft-interactive-secondary-hover)] transition-colors"
-                                        >
-                                            <MoreHorizontal className="w-4 h-4 text-[var(--ft-text-disabled)]" />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                {/* Pagination */}
-                <div className="flex items-center justify-between mt-4">
-                    <div className="flex items-center gap-2">
-                        <select
-                            value={pageSize}
-                            onChange={(e) => setPageSize(Number(e.target.value))}
-                            className="h-8 px-2 border border-[var(--ft-border-primary)] rounded-[var(--ft-radius-md)] text-[13px] text-[var(--ft-text-secondary)] bg-[var(--ft-bg-primary)] focus:outline-none focus:border-[var(--ft-border-focus)]"
-                        >
-                            <option value={20}>20 / page</option>
-                            <option value={50}>50 / page</option>
-                            <option value={100}>100 / page</option>
-                        </select>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                        <CoreButton variant="tertiary" size="xs">
-                            <ChevronLeft className="w-4 h-4" />
-                        </CoreButton>
-                        <span className="px-3 text-[13px] font-medium text-[var(--ft-text-primary)]">
-                            {currentPage}
-                        </span>
-                        <CoreButton variant="tertiary" size="xs">
-                            <ChevronRight className="w-4 h-4" />
-                        </CoreButton>
-                    </div>
-
-                    <div className="flex items-center gap-2">
+                    {/* Search */}
+                    <div className="relative w-[300px]">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--ft-text-disabled)]" />
                         <input
                             type="text"
-                            placeholder="페이지 입력"
-                            className="w-24 h-8 px-2 border border-[var(--ft-border-primary)] rounded-[var(--ft-radius-md)] text-[13px] text-[var(--ft-text-secondary)] placeholder:text-[var(--ft-text-disabled)] focus:outline-none focus:border-[var(--ft-border-focus)]"
+                            placeholder="자동화명, 캠페인, 브랜드 검색"
+                            className="w-full h-9 pl-9 pr-4 text-sm bg-white border border-[var(--ft-border-primary)] rounded-md focus:border-[var(--ft-color-primary-500)] focus:outline-none transition-colors"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                         />
-                        <CoreButton variant="primary" size="xs">
-                            이동
-                        </CoreButton>
                     </div>
+                </div>
+
+                {/* Grid Container */}
+                <div className="h-[calc(100vh-250px)] bg-white rounded-lg border border-[var(--ft-border-secondary)] overflow-hidden">
+                    <AgGridReact<AutomationGroup>
+                        theme={customAgGridTheme}
+                        rowData={filteredGroups}
+                        columnDefs={columnDefs}
+                        defaultColDef={defaultColDef}
+                        rowSelection={selectionOptions}
+                        pagination={true}
+                        paginationPageSize={20}
+                        rowHeight={52}
+                        headerHeight={40}
+                        animateRows={true}
+                    />
                 </div>
             </div>
         </div>

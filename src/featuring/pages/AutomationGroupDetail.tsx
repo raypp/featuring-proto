@@ -85,7 +85,7 @@ export function AutomationGroupDetail({
     };
 
     const tabs: { key: TabType; label: string; icon: React.ReactNode }[] = [
-        { key: 'delivery', label: '전달 현황 관리', icon: <Truck className="w-4 h-4" /> },
+        { key: 'delivery', label: '협업 관리', icon: <Truck className="w-4 h-4" /> },
         { key: 'performance', label: '성과 분석', icon: <BarChart2 className="w-4 h-4" /> },
     ];
 
@@ -113,8 +113,8 @@ export function AutomationGroupDetail({
                         <button
                             key={tab.key}
                             className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.key
-                                    ? 'border-[var(--ft-color-primary-500)] text-[var(--ft-color-primary-600)]'
-                                    : 'border-transparent text-[var(--ft-text-secondary)] hover:text-[var(--ft-text-primary)] hover:bg-[var(--ft-interactive-tertiary-hover)]'
+                                ? 'border-[var(--ft-color-primary-500)] text-[var(--ft-color-primary-600)]'
+                                : 'border-transparent text-[var(--ft-text-secondary)] hover:text-[var(--ft-text-primary)] hover:bg-[var(--ft-interactive-tertiary-hover)]'
                                 }`}
                             onClick={() => setActiveTab(tab.key)}
                         >

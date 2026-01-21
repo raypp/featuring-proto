@@ -5,12 +5,14 @@ export interface AutomationGroup {
     id: number;
     name: string;
     description?: string;
-    status: 'active' | 'inactive';
+    status: 'active' | 'inactive' | 'pending' | 'running' | 'completed';
     influencerCount: number;
     templateStatus: 'none' | 'draft' | 'saved' | 'deployed';
     lastModified: string;
     createdAt: string;
     linkedCampaignId?: number;  // Links to Campaign.id
+    campaignName?: string;      // Display name for table
+    productBrand?: string;      // Product/Brand info
 }
 
 // CTA 링크 (변수 지원)

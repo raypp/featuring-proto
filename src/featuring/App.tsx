@@ -9,50 +9,60 @@ import { TemplateManagement } from "./pages/TemplateManagement";
 import { CampaignManagement } from "./pages/CampaignManagement";
 
 import { CampaignDetail } from "./pages/CampaignDetail";
+import { InfluencerManagement } from "./pages/InfluencerManagement";
+import { InfluencerGroupDetail } from "./pages/InfluencerGroupDetail";
 import { AutomationGroup, DMTemplate, Campaign, CampaignInfluencer, CampaignContent, AutomationInfluencer, AutomationGroupSummary } from "./types";
 
 // Mock Data
 const MOCK_AUTOMATION_GROUPS: AutomationGroup[] = [
     {
         id: 1,
-        name: "다이슨 에어랩 캠페인",
-        description: "2026 다이슨 에어랩 멀티 스타일러 반응 자동화",
-        status: "active",
+        name: "햇반 캠페인",
+        description: "2026 햇반 신제품 반응 자동화",
+        status: "running",
         influencerCount: 12,
         templateStatus: "deployed",
         lastModified: "2026-01-14",
         createdAt: "2026-01-10",
-        linkedCampaignId: 1  // Links to MOCK_CAMPAIGNS[0]
+        linkedCampaignId: 1,
+        campaignName: "26.03 다이슨 에어랩 캠페인", // Mock link
+        productBrand: "햇반/CJ제일제당"
     },
     {
         id: 2,
         name: "신규 브랜드 런칭",
         description: "브랜드 인지도 향상 캠페인",
-        status: "active",
+        status: "pending",
         influencerCount: 8,
         templateStatus: "saved",
         lastModified: "2024-03-14",
-        createdAt: "2024-02-15"
+        createdAt: "2024-02-15",
+        campaignName: "단독",
+        productBrand: "미녀스/런칭"
     },
     {
         id: 3,
         name: "할인 이벤트 프로모션",
         description: "주간 할인 이벤트 홍보",
-        status: "inactive",
+        status: "completed",
         influencerCount: 5,
         templateStatus: "draft",
         lastModified: "2024-03-10",
-        createdAt: "2024-03-01"
+        createdAt: "2024-03-01",
+        campaignName: "단독",
+        productBrand: "다이슨/에어랩"
     },
     {
         id: 4,
         name: "VIP 고객 전용",
         description: "VIP 고객 대상 프리미엄 혜택 안내",
-        status: "active",
+        status: "running",
         influencerCount: 3,
         templateStatus: "none",
         lastModified: "2024-03-08",
-        createdAt: "2024-03-05"
+        createdAt: "2024-03-05",
+        campaignName: "25.10 상수 팝업",
+        productBrand: "FIG/팝업"
     }
 ];
 
@@ -436,6 +446,7 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
     const [campaignContents] = useState<CampaignContent[]>(MOCK_CAMPAIGN_CONTENTS);
     const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
     const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
+    const [selectedInfluencerGroupId, setSelectedInfluencerGroupId] = useState<number | null>(null);
     const [nextTemplateId, setNextTemplateId] = useState(4);
     const [reactionAutomationContext, setReactionAutomationContext] = useState<{ context: 'global' | 'campaign'; campaignId?: number; campaignName?: string } | null>(null);
     const [reactionAutomationMode, setReactionAutomationMode] = useState<'view' | 'edit'>('view');
@@ -643,19 +654,29 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
     const handleNavigate = (view: string) => {
         const groupId = getGroupIdFromView(view);
         const campaignId = getCampaignIdFromView(view);
+        const influencerGroupMatch = view.match(/influencer-group-detail-(\d+)/);
+        const influencerGroupId = influencerGroupMatch ? parseInt(influencerGroupMatch[1], 10) : null;
 
-        if (groupId) {
+        if (influencerGroupId) {
+            setSelectedInfluencerGroupId(influencerGroupId);
+            setSelectedGroupId(null);
+            setSelectedCampaignId(null);
+            setCurrentView('influencer-group-detail');
+        } else if (groupId) {
             setSelectedGroupId(groupId);
             setSelectedCampaignId(null);
+            setSelectedInfluencerGroupId(null);
             setReactionAutomationMode('view'); // Reset to view mode
             setCurrentView('automation-group-detail');
         } else if (campaignId) {
             setSelectedCampaignId(campaignId);
             setSelectedGroupId(null);
+            setSelectedInfluencerGroupId(null);
             setCurrentView('campaign-detail');
         } else {
             setSelectedGroupId(null);
             setSelectedCampaignId(null);
+            setSelectedInfluencerGroupId(null);
             setCurrentView(view);
         }
     };
@@ -877,6 +898,33 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
                     </div>
                 );
 
+            case 'influencer-management':
+                return (
+                    <InfluencerManagement
+                        onNavigate={handleNavigate}
+                    />
+                );
+
+            case 'influencer-group-detail':
+                const selectedInfluencerGroup = selectedInfluencerGroupId
+                    ? { id: selectedInfluencerGroupId, name: "신학기 백투스쿨 캠페인 리스트업", platform: 'instagram' as const, memberCount: 100 }
+                    : null;
+
+                if (!selectedInfluencerGroup) {
+                    return (
+                        <div className="p-8 text-center">
+                            <p className="text-[#707070]">그룹을 찾을 수 없습니다</p>
+                        </div>
+                    );
+                }
+
+                return (
+                    <InfluencerGroupDetail
+                        group={selectedInfluencerGroup}
+                        onBack={() => handleNavigate('influencer-management')}
+                        onNavigate={handleNavigate}
+                    />
+                );
 
 
 

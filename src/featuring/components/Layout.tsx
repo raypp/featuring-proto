@@ -72,7 +72,7 @@ export function Sidebar({ currentView, onChangeView, onBackToServiceSelector }: 
                 <SectionLabel>인플루언서</SectionLabel>
                 <div className="px-2 pb-2">
                     <NavItem icon={Search} label="인플루언서 찾기" isActive={isActive('find-influencer')} onClick={() => onChangeView('find-influencer')} disabled />
-                    <NavItem icon={Users} label="인플루언서 풀 관리" isActive={isActive('influencer-pool')} onClick={() => onChangeView('influencer-pool')} disabled />
+                    <NavItem icon={Users} label="인플루언서 관리" isActive={isActive('influencer-management')} onClick={() => onChangeView('influencer-management')} />
                     <NavItem icon={Trophy} label="인플루언서 랭킹" isActive={isActive('influencer-ranking')} onClick={() => onChangeView('influencer-ranking')} disabled />
                     <NavItem icon={Sparkles} label="AI 리스트업" isActive={isActive('ai-listup')} onClick={() => onChangeView('ai-listup')} disabled />
                 </div>
