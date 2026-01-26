@@ -59,6 +59,66 @@ export interface InfluencerTemplateVars {
     deliveredAt?: string;
 }
 
+// ========================================
+// 협업 관리 Split View 타입 정의
+// ========================================
+
+// 템플릿별 전달 상태
+export type TemplateDeliveryStatus = 'not_delivered' | 'pending' | 'delivered' | 'failed';
+
+// 인플루언서별 템플릿 할당 정보 (스냅샷 포함)
+export interface InfluencerTemplateAssignment {
+    id: number;                              // 할당 고유 ID
+    influencerId: number;
+    templateId: number;
+    templateName: string;
+    snapshotVersion: number;                 // 스냅샷 버전 (예: 1, 2, 3...)
+    deliveryStatus: TemplateDeliveryStatus;
+    deliveredAt?: string;                    // 전달 완료 시각
+    failReason?: string;                     // 실패 사유
+    variables: Record<string, string>;       // 템플릿 변수값 (버튼 URL 등)
+    // 스냅샷된 템플릿 내용 (전달 후 고정)
+    snapshotContent?: {
+        dmGuide: string;
+        imageUrl?: string;
+        ctaLinks: CTALink[];
+        triggerKeywords?: string[];
+    };
+    createdAt: string;
+    lastModifiedAt: string;
+}
+
+// 좌측 테이블용 인플루언서 요약 데이터
+export interface CollaborationInfluencer {
+    id: number;
+    influencerId: number;
+    username: string;
+    displayName: string;
+    profileImage?: string;
+    isConnected: boolean;                    // 스튜디오 연결 상태
+
+    // 템플릿 요약 정보
+    templateCount: number;                   // 적용된 템플릿 개수
+    templateNames: string[];                 // 적용된 템플릿명 목록 (tooltip용)
+
+    // 전달 요약 정보
+    deliverySummary: {
+        delivered: number;
+        pending: number;
+        failed: number;
+        notDelivered: number;
+    };
+
+    // 자동화 상태 (전체 기준)
+    automationStatus: 'running' | 'stopped' | 'error' | 'none';
+
+    // 마지막 전달일 (가장 최근 템플릿 기준)
+    lastDeliveredAt?: string;
+
+    // 할당된 템플릿 상세 (우측 패널용)
+    templateAssignments: InfluencerTemplateAssignment[];
+}
+
 // 인플루언서
 export interface Influencer {
     id: number;
