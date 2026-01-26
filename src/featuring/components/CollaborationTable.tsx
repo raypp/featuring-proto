@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Search, Plus, Settings, CheckCircle2, X as XIcon, Send, ChevronDown, ChevronUp, ExternalLink, AlertCircle, Clock } from "lucide-react";
+import { Search, Plus, Settings, CheckCircle2, X as XIcon, Send, ChevronDown, ChevronUp, ExternalLink, AlertCircle, Clock, Link } from "lucide-react";
 import { CoreButton, CoreAvatar } from "../../design-system";
 import { CollaborationInfluencer, DMTemplate, InfluencerTemplateAssignment } from "../types";
 import { Badge } from "@/app/components/ui/badge";
@@ -51,9 +51,18 @@ export function CollaborationTable({
 
     // Handlers
     const toggleSelection = (id: number) => {
-        setSelectedInfluencerIds(prev =>
-            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-        );
+        if (selectedInfluencerIds.includes(id)) {
+            setSelectedInfluencerIds(prev => prev.filter(i => i !== id));
+        } else {
+            setSelectedInfluencerIds(prev => [...prev, id]);
+        }
+    };
+
+    const handleCopyLink = (assignmentId: number) => {
+        const link = `https://featu.re/t/${assignmentId}`;
+        navigator.clipboard.writeText(link).then(() => {
+            alert(`템플릿 링크가 복사되었습니다.\n${link}`);
+        });
     };
 
     const toggleAll = () => {
@@ -214,10 +223,20 @@ export function CollaborationTable({
                                 </div>
 
                                 {/* Template Summary */}
-                                <div className="flex items-center gap-1 text-xs">
+                                <div className="flex items-center gap-2 text-xs">
                                     <span className={cn("font-medium", influencer.templateCount > 0 ? "text-blue-600" : "text-gray-400")}>
                                         {influencer.templateCount}개 적용
                                     </span>
+                                    <button
+                                        className="p-1 hover:bg-blue-50 rounded text-blue-600 transition-colors"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onAddTemplateToInfluencer?.(influencer.influencerId);
+                                        }}
+                                        title="템플릿 추가"
+                                    >
+                                        <Plus className="w-3 h-3" />
+                                    </button>
                                 </div>
 
                                 {/* Delivery Summary */}
@@ -272,6 +291,19 @@ export function CollaborationTable({
 
                                                         // URL editing is disabled if already delivered
                                                         const isUrlDisabled = isDelivered;
+
+                                                        // Check if influencer is disconnected
+                                                        const isDisconnected = !influencer.isConnected;
+
+                                                        // Check if all required variable URLs are filled
+                                                        const variableButtons = buttons.filter(btn => btn.isVariable && btn.variableName);
+                                                        const hasAllRequiredUrls = variableButtons.every(btn => {
+                                                            const value = assignment.variables[btn.variableName!];
+                                                            return value && value.trim().length > 0;
+                                                        });
+
+                                                        // Can deliver only if connected and all required URLs filled
+                                                        const canDeliver = !isDisconnected && hasAllRequiredUrls;
 
                                                         return (
                                                             <tr key={assignment.id} className="hover:bg-gray-50">
@@ -352,13 +384,33 @@ export function CollaborationTable({
                                                                 {/* Action Button */}
                                                                 <td className="px-4 py-3 align-middle text-right whitespace-nowrap">
                                                                     {isNotDelivered && (
-                                                                        <CoreButton
-                                                                            size="sm"
-                                                                            variant="primary"
-                                                                            onClick={() => onDeliverTemplate?.(influencer.influencerId, assignment.id)}
-                                                                        >
-                                                                            전달하기
-                                                                        </CoreButton>
+                                                                        <div className="flex flex-col items-end gap-1">
+                                                                            <div className="flex items-center gap-1">
+                                                                                <CoreButton
+                                                                                    size="sm"
+                                                                                    variant="secondary"
+                                                                                    className="px-2"
+                                                                                    onClick={() => handleCopyLink(assignment.id)}
+                                                                                    title="링크 복사 (수동 전달)"
+                                                                                >
+                                                                                    <Link size={14} className="text-gray-500" />
+                                                                                </CoreButton>
+                                                                                <CoreButton
+                                                                                    size="sm"
+                                                                                    variant="primary"
+                                                                                    onClick={() => onDeliverTemplate?.(influencer.influencerId, assignment.id)}
+                                                                                    disabled={!canDeliver}
+                                                                                >
+                                                                                    전달하기
+                                                                                </CoreButton>
+                                                                            </div>
+                                                                            {isDisconnected && (
+                                                                                <span className="text-[10px] text-red-500">계정 연결 필요</span>
+                                                                            )}
+                                                                            {!isDisconnected && !hasAllRequiredUrls && (
+                                                                                <span className="text-[10px] text-amber-600">URL 입력 필요</span>
+                                                                            )}
+                                                                        </div>
                                                                     )}
                                                                     {isPending && (
                                                                         <CoreButton
@@ -380,13 +432,19 @@ export function CollaborationTable({
                                                                         </CoreButton>
                                                                     )}
                                                                     {isFailed && (
-                                                                        <CoreButton
-                                                                            size="sm"
-                                                                            variant="secondary"
-                                                                            onClick={() => onDeliverTemplate?.(influencer.influencerId, assignment.id)}
-                                                                        >
-                                                                            재시도
-                                                                        </CoreButton>
+                                                                        <div className="flex flex-col items-end gap-1">
+                                                                            <CoreButton
+                                                                                size="sm"
+                                                                                variant="secondary"
+                                                                                onClick={() => onDeliverTemplate?.(influencer.influencerId, assignment.id)}
+                                                                                disabled={!canDeliver}
+                                                                            >
+                                                                                재시도
+                                                                            </CoreButton>
+                                                                            {isDisconnected && (
+                                                                                <span className="text-[10px] text-red-500">계정 연결 필요</span>
+                                                                            )}
+                                                                        </div>
                                                                     )}
                                                                 </td>
                                                             </tr>

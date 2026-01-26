@@ -1,13 +1,17 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
-    ChevronLeft, ChevronRight, Send, BarChart2, Truck
+    ChevronLeft, ChevronRight, Users, FileText, BarChart2
 } from "lucide-react";
 import { AutomationGroup, DMTemplate, AutomationInfluencer, CollaborationInfluencer, InfluencerTemplateAssignment } from "../types";
 import { CoreButton } from "../../design-system";
 import { CollaborationTable } from "../components/CollaborationTable";
 import { TemplateListModal } from "../components/TemplateListModal";
-import { PerformanceDashboard } from "../components/PerformanceDashboard";
 import { AddInfluencerModal } from "../components/AddInfluencerModal";
+import { PerformanceDashboard } from "../components/PerformanceDashboard";
+import { DeliveryConfirmationModal } from "../components/DeliveryConfirmationModal";
+import { CancelDeliveryModal } from "../components/CancelDeliveryModal";
+
+type TabType = 'collaboration' | 'performance';
 
 interface AutomationGroupDetailProps {
     group: AutomationGroup;
@@ -19,7 +23,6 @@ interface AutomationGroupDetailProps {
     onAddInfluencer?: () => void;
 }
 
-type TabType = 'delivery' | 'performance';
 
 // Mock Data Generator (Lifted from previous SplitView)
 function generateMockInfluencers(templates: DMTemplate[]): CollaborationInfluencer[] {
@@ -101,9 +104,24 @@ export function AutomationGroupDetail({
     onDeliverTemplate,
     onAddInfluencer
 }: AutomationGroupDetailProps) {
-    const [activeTab, setActiveTab] = useState<TabType>('delivery');
+    const [activeTab, setActiveTab] = useState<TabType>('collaboration');
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [isAddInfluencerModalOpen, setIsAddInfluencerModalOpen] = useState(false);
+
+    // Modal States for Delivery Actions
+    const [deliveryConfirmation, setDeliveryConfirmation] = useState<{
+        isOpen: boolean;
+        influencerId: number;
+        assignmentId: number;
+        influencerName: string;
+        templateName: string;
+    } | null>(null);
+
+    const [cancelConfirmation, setCancelConfirmation] = useState<{
+        isOpen: boolean;
+        influencerId: number;
+        assignmentId: number;
+    } | null>(null);
 
     // Initial Templates
     const [templates, setTemplates] = useState<DMTemplate[]>([
@@ -167,21 +185,43 @@ export function AutomationGroupDetail({
     };
 
     const handleDeliverSingle = (influencerId: number, assignmentId: number) => {
+        const influencer = collaborationInfluencers.find(inf => inf.influencerId === influencerId);
+        const assignment = influencer?.templateAssignments.find(a => a.id === assignmentId);
+
+        if (influencer && assignment) {
+            setDeliveryConfirmation({
+                isOpen: true,
+                influencerId,
+                assignmentId,
+                influencerName: influencer.displayName,
+                templateName: assignment.templateName
+            });
+        }
+    };
+
+    const confirmDeliverSingle = () => {
+        if (!deliveryConfirmation) return;
+        const { influencerId, assignmentId } = deliveryConfirmation;
+
         setCollaborationInfluencers(prev => prev.map(inf => {
             if (inf.influencerId !== influencerId) return inf;
-            const updatedAssignments = inf.templateAssignments.map(a =>
-                a.id === assignmentId ? { ...a, deliveryStatus: 'delivered' as const, deliveredAt: new Date().toISOString() } : a
-            );
             return {
                 ...inf,
-                templateAssignments: updatedAssignments,
+                templateAssignments: inf.templateAssignments.map(a =>
+                    a.id === assignmentId
+                        ? { ...a, deliveryStatus: 'delivered', deliveredAt: new Date().toISOString() }
+                        : a
+                ),
                 deliverySummary: {
                     ...inf.deliverySummary,
                     delivered: inf.deliverySummary.delivered + 1,
-                    notDelivered: Math.max(0, inf.deliverySummary.notDelivered - 1)
+                    notDelivered: Math.max(0, inf.deliverySummary.notDelivered - 1),
+                    pending: Math.max(0, inf.deliverySummary.pending - 1) // Handle pending transition too
                 }
             };
         }));
+
+        setDeliveryConfirmation(null);
     };
 
     const handleStopSingle = (influencerId: number, assignmentId: number) => {
@@ -204,21 +244,39 @@ export function AutomationGroupDetail({
 
     // Cancel a pending delivery (delivered but not yet accepted)
     const handleCancelDelivery = (influencerId: number, assignmentId: number) => {
+        const influencer = collaborationInfluencers.find(inf => inf.influencerId === influencerId);
+        const assignment = influencer?.templateAssignments.find(a => a.id === assignmentId);
+
+        if (influencer && assignment) {
+            setCancelConfirmation({
+                isOpen: true,
+                influencerId,
+                assignmentId
+            });
+        }
+    };
+
+    const confirmCancelDelivery = () => {
+        if (!cancelConfirmation) return;
+        const { influencerId, assignmentId } = cancelConfirmation;
+
         setCollaborationInfluencers(prev => prev.map(inf => {
             if (inf.influencerId !== influencerId) return inf;
-            const updatedAssignments = inf.templateAssignments.map(a =>
-                a.id === assignmentId ? { ...a, deliveryStatus: 'not_delivered' as const, deliveredAt: undefined } : a
-            );
             return {
                 ...inf,
-                templateAssignments: updatedAssignments,
+                templateAssignments: inf.templateAssignments.map(a =>
+                    a.id === assignmentId
+                        ? { ...a, deliveryStatus: 'failed', failReason: '취소됨' }
+                        : a
+                ),
                 deliverySummary: {
                     ...inf.deliverySummary,
                     pending: Math.max(0, inf.deliverySummary.pending - 1),
-                    notDelivered: inf.deliverySummary.notDelivered + 1
+                    failed: inf.deliverySummary.failed + 1
                 }
             };
         }));
+        setCancelConfirmation(null);
     };
 
     // Add influencers from modal
@@ -250,50 +308,75 @@ export function AutomationGroupDetail({
         alert(`인플루언서 ${influencerId}에게 템플릿을 추가합니다. (템플릿 선택 모달 구현 필요)`);
     };
 
-    const tabs: { key: TabType; label: string; icon: React.ReactNode }[] = [
-        { key: 'delivery', label: '협업 관리', icon: <Truck className="w-4 h-4" /> },
-        { key: 'performance', label: '성과 분석', icon: <BarChart2 className="w-4 h-4" /> },
-    ];
+    // Campaign status helper
+    const getCampaignStatusBadge = (status: string) => {
+        switch (status) {
+            case 'active':
+                return <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700">진행중</span>;
+            case 'completed':
+                return <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600">종료</span>;
+            case 'paused':
+                return <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">중단</span>;
+            default:
+                return <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700">진행중</span>;
+        }
+    };
 
     return (
         <div className="flex flex-col h-full bg-[var(--ft-bg-secondary)]">
             {/* Header */}
-            <div className="bg-white border-b border-[var(--ft-border-primary)] px-6 pt-6 sticky top-0 z-20">
-                <div className="flex items-center gap-3 mb-6">
-                    <CoreButton variant="tertiary" size="sm" onClick={onBack} leftIcon={<ChevronLeft className="w-4 h-4" />}>
-                        뒤로
-                    </CoreButton>
-                    <div>
-                        <div className="flex items-center gap-2 text-sm text-[var(--ft-text-secondary)] mb-1">
-                            <span>반응 자동화 관리</span>
-                            <ChevronRight className="w-3 h-3" />
-                            <span>{group.name}</span>
+            <div className="bg-white border-b border-[var(--ft-border-primary)] px-6 py-5 sticky top-0 z-20">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <CoreButton variant="tertiary" size="sm" onClick={onBack} leftIcon={<ChevronLeft className="w-4 h-4" />}>
+                            뒤로
+                        </CoreButton>
+                        <div>
+                            <div className="flex items-center gap-2 text-sm text-[var(--ft-text-secondary)] mb-1">
+                                <span>반응 자동화 관리</span>
+                                <ChevronRight className="w-3 h-3" />
+                                <span>{group.name}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <h1 className="text-xl font-bold text-[var(--ft-text-primary)]">{group.name}</h1>
+                                {getCampaignStatusBadge(group.status || 'active')}
+                            </div>
                         </div>
-                        <h1 className="text-xl font-bold text-[var(--ft-text-primary)]">{group.name}</h1>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-[var(--ft-text-secondary)]">
+                        <Users className="w-4 h-4" />
+                        <span>참여 인플루언서 <strong className="text-[var(--ft-text-primary)]">{collaborationInfluencers.length}명</strong></span>
                     </div>
                 </div>
 
-                {/* 2-Tab Navigation */}
-                <div className="flex gap-1">
-                    {tabs.map((tab) => (
-                        <button
-                            key={tab.key}
-                            className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.key
-                                ? 'border-[var(--ft-color-primary-500)] text-[var(--ft-color-primary-600)]'
-                                : 'border-transparent text-[var(--ft-text-secondary)] hover:text-[var(--ft-text-primary)] hover:bg-[var(--ft-interactive-tertiary-hover)]'
-                                }`}
-                            onClick={() => setActiveTab(tab.key)}
-                        >
-                            {tab.icon}
-                            {tab.label}
-                        </button>
-                    ))}
+                {/* Tab Navigation */}
+                <div className="flex gap-1 mt-4">
+                    <button
+                        className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'collaboration'
+                            ? 'border-[var(--ft-color-primary-500)] text-[var(--ft-color-primary-600)]'
+                            : 'border-transparent text-[var(--ft-text-secondary)] hover:text-[var(--ft-text-primary)] hover:bg-[var(--ft-interactive-tertiary-hover)]'
+                            }`}
+                        onClick={() => setActiveTab('collaboration')}
+                    >
+                        <FileText className="w-4 h-4" />
+                        템플릿&협업 관리
+                    </button>
+                    <button
+                        className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'performance'
+                            ? 'border-[var(--ft-color-primary-500)] text-[var(--ft-color-primary-600)]'
+                            : 'border-transparent text-[var(--ft-text-secondary)] hover:text-[var(--ft-text-primary)] hover:bg-[var(--ft-interactive-tertiary-hover)]'
+                            }`}
+                        onClick={() => setActiveTab('performance')}
+                    >
+                        <BarChart2 className="w-4 h-4" />
+                        성과 요약
+                    </button>
                 </div>
             </div>
 
             {/* Content Area */}
             <div className="flex-1 overflow-hidden">
-                {activeTab === 'delivery' && (
+                {activeTab === 'collaboration' && (
                     <div className="h-full bg-white">
                         <CollaborationTable
                             influencers={collaborationInfluencers}
@@ -312,7 +395,7 @@ export function AutomationGroupDetail({
 
                 {activeTab === 'performance' && (
                     <div className="h-full bg-white overflow-auto">
-                        <PerformanceDashboard influencerCount={influencers.length} />
+                        <PerformanceDashboard influencerCount={collaborationInfluencers.length} />
                     </div>
                 )}
             </div>
@@ -331,6 +414,20 @@ export function AutomationGroupDetail({
                 isOpen={isAddInfluencerModalOpen}
                 onClose={() => setIsAddInfluencerModalOpen(false)}
                 onAdd={handleAddInfluencers}
+            />
+            {/* Delivery Confirmation Modal */}
+            <DeliveryConfirmationModal
+                isOpen={!!deliveryConfirmation && deliveryConfirmation.isOpen}
+                onClose={() => setDeliveryConfirmation(null)}
+                onConfirm={confirmDeliverSingle}
+                data={deliveryConfirmation}
+            />
+
+            {/* Cancel Confirmation Modal */}
+            <CancelDeliveryModal
+                isOpen={!!cancelConfirmation && cancelConfirmation.isOpen}
+                onClose={() => setCancelConfirmation(null)}
+                onConfirm={confirmCancelDelivery}
             />
         </div>
     );
