@@ -364,3 +364,46 @@ export interface PerformanceTableRow {
     comments: number;
     saves: number;
 }
+
+// ========================================
+// 워크플로우 빌더 타입 정의
+// ========================================
+
+export type WorkflowStepType = 'start' | 'action' | 'delay' | 'condition' | 'end';
+
+export type ActionType = 'profile_visit' | 'message' | 'email' | 'invite';
+export type ConditionType = 'is_replied' | 'is_opened' | 'is_clicked';
+
+export interface WorkflowStepConfig {
+    // Action
+    actionType?: ActionType;
+    messageTemplateId?: number;
+    emailTemplateId?: number;
+
+    // Delay
+    duration?: number; // hours (e.g., 24 for 1 day)
+
+    // Condition
+    conditionType?: ConditionType;
+}
+
+export interface WorkflowStep {
+    id: string;
+    type: WorkflowStepType;
+    title: string;
+    description?: string;
+    icon?: string; // Lucide icon name or enum
+    config?: WorkflowStepConfig;
+    nextId?: string;
+
+    // For branching (Condition)
+    trueNextId?: string;
+    falseNextId?: string;
+}
+
+export interface Workflow {
+    id: string;
+    name: string;
+    steps: WorkflowStep[];
+    startStepId: string;
+}

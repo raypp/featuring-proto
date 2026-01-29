@@ -1,9 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import {
-    ChevronLeft, ChevronRight, Users, FileText, BarChart2
-} from "lucide-react";
-import { AutomationGroup, DMTemplate, AutomationInfluencer, CollaborationInfluencer, InfluencerTemplateAssignment } from "../types";
-import { CoreButton } from "../../design-system";
+import { ChevronLeft, MoreHorizontal, Filter, Download, Plus, Search, CheckCircle2, AlertCircle, Clock, Save, FileText, BarChart2, GitGraph, List, ChevronRight, Users } from "lucide-react";
+import { CoreButton, CoreAvatar } from "../../design-system";
+import { AutomationGroup, CollaborationInfluencer, DMTemplate, InfluencerTemplateAssignment, AutomationInfluencer } from "../types";
 import { CollaborationTable } from "../components/CollaborationTable";
 import { TemplateListModal } from "../components/TemplateListModal";
 import { AddInfluencerModal } from "../components/AddInfluencerModal";
@@ -11,7 +9,7 @@ import { PerformanceDashboard } from "../components/PerformanceDashboard";
 import { DeliveryConfirmationModal } from "../components/DeliveryConfirmationModal";
 import { CancelDeliveryModal } from "../components/CancelDeliveryModal";
 
-type TabType = 'collaboration' | 'performance';
+type TabType = 'list' | 'performance';
 
 interface AutomationGroupDetailProps {
     group: AutomationGroup;
@@ -104,7 +102,7 @@ export function AutomationGroupDetail({
     onDeliverTemplate,
     onAddInfluencer
 }: AutomationGroupDetailProps) {
-    const [activeTab, setActiveTab] = useState<TabType>('collaboration');
+    const [activeTab, setActiveTab] = useState<TabType>('list');
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [isAddInfluencerModalOpen, setIsAddInfluencerModalOpen] = useState(false);
 
@@ -352,13 +350,13 @@ export function AutomationGroupDetail({
                 {/* Tab Navigation */}
                 <div className="flex gap-1 mt-4">
                     <button
-                        className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'collaboration'
+                        className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'list'
                             ? 'border-[var(--ft-color-primary-500)] text-[var(--ft-color-primary-600)]'
                             : 'border-transparent text-[var(--ft-text-secondary)] hover:text-[var(--ft-text-primary)] hover:bg-[var(--ft-interactive-tertiary-hover)]'
                             }`}
-                        onClick={() => setActiveTab('collaboration')}
+                        onClick={() => setActiveTab('list')}
                     >
-                        <FileText className="w-4 h-4" />
+                        <List className="w-4 h-4" />
                         템플릿&협업 관리
                     </button>
                     <button
@@ -376,7 +374,7 @@ export function AutomationGroupDetail({
 
             {/* Content Area */}
             <div className="flex-1 overflow-hidden">
-                {activeTab === 'collaboration' && (
+                {activeTab === 'list' && (
                     <div className="h-full bg-white">
                         <CollaborationTable
                             influencers={collaborationInfluencers}

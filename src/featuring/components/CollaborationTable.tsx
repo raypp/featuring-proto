@@ -223,10 +223,28 @@ export function CollaborationTable({
                                 </div>
 
                                 {/* Template Summary */}
-                                <div className="flex items-center gap-2 text-xs">
-                                    <span className={cn("font-medium", influencer.templateCount > 0 ? "text-blue-600" : "text-gray-400")}>
-                                        {influencer.templateCount}개 적용
-                                    </span>
+                                <div className="flex items-center gap-1.5 text-xs flex-wrap" onClick={(e) => e.stopPropagation()}>
+                                    {influencer.templateAssignments.length === 0 ? (
+                                        <span className="text-gray-400">템플릿 없음</span>
+                                    ) : (
+                                        <>
+                                            {influencer.templateAssignments.slice(0, 2).map((assignment) => (
+                                                <button
+                                                    key={assignment.id}
+                                                    className="flex items-center gap-1 px-2 py-1 rounded-md border border-gray-200 bg-white hover:bg-gray-50 text-[11px] font-medium text-gray-700 transition-colors shadow-sm max-w-[120px] truncate"
+                                                    onClick={() => setDetailAssignment(assignment)}
+                                                    title={assignment.templateName}
+                                                >
+                                                    <span className="truncate">{assignment.templateName}</span>
+                                                </button>
+                                            ))}
+                                            {influencer.templateAssignments.length > 2 && (
+                                                <span className="text-[11px] text-gray-500 font-medium px-1.5 py-1 bg-gray-100 rounded-md">
+                                                    +{influencer.templateAssignments.length - 2}개
+                                                </span>
+                                            )}
+                                        </>
+                                    )}
                                     <button
                                         className="p-1 hover:bg-blue-50 rounded text-blue-600 transition-colors"
                                         onClick={(e) => {
@@ -310,13 +328,13 @@ export function CollaborationTable({
                                                                 {/* Template Name */}
                                                                 <td className="px-4 py-3 align-middle">
                                                                     <div className="flex items-center gap-2">
-                                                                        <div
-                                                                            className="font-medium text-blue-600 hover:underline cursor-pointer flex items-center gap-1"
+                                                                        <button
+                                                                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-gray-200 bg-white hover:bg-gray-50 text-xs font-medium text-gray-700 transition-colors shadow-sm"
                                                                             onClick={() => setDetailAssignment(assignment)}
                                                                         >
                                                                             {assignment.templateName}
-                                                                            <ExternalLink size={10} />
-                                                                        </div>
+                                                                            <ExternalLink size={12} className="text-gray-400" />
+                                                                        </button>
                                                                         <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-gray-50 text-gray-500">
                                                                             v{assignment.snapshotVersion}
                                                                         </Badge>

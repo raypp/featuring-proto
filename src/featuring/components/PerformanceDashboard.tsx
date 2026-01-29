@@ -9,6 +9,7 @@ import { DailyPerformance } from "../types";
 import { AgGridReact } from "ag-grid-react";
 import { ColDef, ModuleRegistry, AllCommunityModule, ICellRendererParams, RowSelectionOptions, SelectionChangedEvent } from "ag-grid-community";
 import { customAgGridTheme } from "../utils/agGridTheme";
+import * as XLSX from "xlsx";
 
 // Register AG Grid Modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -51,7 +52,73 @@ interface ContentPerformance {
         uniqueClicks: number;
         ctr: number;
     }[];
+    // Internal flag for detail row
+    isDetailRow?: boolean;
+    parentRow?: ContentPerformance;
 }
+
+// Button Performance Detail Component
+const ButtonPerformanceDetail = ({ data }: { data: ContentPerformance }) => {
+    if (!data.parentRow) return null;
+    const content = data.parentRow;
+
+    return (
+        <div className="w-full bg-[var(--ft-bg-secondary)] p-4 border-b border-[var(--ft-border-primary)]">
+            <div className="bg-white rounded-xl border border-[var(--ft-border-primary)] overflow-hidden shadow-sm">
+                <div className="px-4 py-2 bg-[var(--ft-bg-secondary)] border-b border-[var(--ft-border-primary)] flex items-center justify-between">
+                    <span className="text-xs font-medium text-[var(--ft-text-secondary)]">
+                        버튼별 성과 - {content.influencerName} ({content.contentType})
+                    </span>
+                </div>
+                <table className="w-full">
+                    <thead>
+                        <tr className="border-b border-[var(--ft-border-secondary)] bg-gray-50">
+                            <th className="text-center px-4 py-2 text-xs font-medium text-[var(--ft-text-disabled)] w-12">No</th>
+                            <th className="text-left px-4 py-2 text-xs font-medium text-[var(--ft-text-disabled)]">버튼명</th>
+                            <th className="text-left px-4 py-2 text-xs font-medium text-[var(--ft-text-disabled)]">URL</th>
+                            <th className="text-right px-4 py-2 text-xs font-medium text-[var(--ft-text-disabled)]">총 클릭</th>
+                            <th className="text-right px-4 py-2 text-xs font-medium text-[var(--ft-text-disabled)]">클릭 인원</th>
+                            <th className="text-right px-4 py-2 text-xs font-medium text-[var(--ft-text-disabled)]">CTR</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {content.buttonPerformance.map((btn, idx) => (
+                            <tr key={idx} className="border-b border-[var(--ft-border-primary)] last:border-0 hover:bg-gray-50">
+                                <td className="px-4 py-2.5 text-center">
+                                    <span className="inline-flex items-center justify-center w-5 h-5 bg-[var(--ft-color-primary-100)] text-[var(--ft-color-primary-700)] text-xs font-bold rounded-full">{idx + 1}</span>
+                                </td>
+                                <td className="px-4 py-2.5 text-sm font-medium text-[var(--ft-text-primary)]">
+                                    {btn.buttonName}
+                                </td>
+                                <td className="px-4 py-2.5 text-sm text-[var(--ft-text-secondary)] max-w-[300px] truncate">
+                                    <a href={btn.url} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--ft-color-primary-600)] hover:underline inline-flex items-center">
+                                        {btn.url} <ExternalLink className="w-3 h-3 ml-1" />
+                                    </a>
+                                </td>
+                                <td className="px-4 py-2.5 text-right text-sm text-[var(--ft-text-secondary)]">
+                                    {btn.clicks.toLocaleString()}
+                                </td>
+                                <td className="px-4 py-2.5 text-right text-sm text-[var(--ft-text-secondary)]">
+                                    {btn.uniqueClicks.toLocaleString()}
+                                </td>
+                                <td className="px-4 py-2.5 text-right text-sm font-medium text-[var(--ft-color-primary-600)]">
+                                    {btn.ctr.toFixed(1)}%
+                                </td>
+                            </tr>
+                        ))}
+                        {content.buttonPerformance.length === 0 && (
+                            <tr>
+                                <td colSpan={6} className="px-4 py-8 text-center text-sm text-[var(--ft-text-disabled)]">
+                                    연결된 버튼 데이터가 없습니다.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
 
 const mockDailyData: DailyPerformance[] = [
     { date: "01/14", reach: 12500, clicks: 890, conversions: 45 },
@@ -489,10 +556,118 @@ export function PerformanceDashboard({ influencerCount }: PerformanceDashboardPr
     };
 
     // Filter
-    const filteredData = mockContentData.filter(c =>
-        c.influencerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.contentType.includes(searchTerm)
-    );
+    const filteredData = useMemo(() => {
+        return mockContentData.filter(c =>
+            c.influencerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            c.contentType.includes(searchTerm)
+        );
+    }, [searchTerm]);
+
+    // Excel Download Handler
+    const handleExcelDownload = useCallback(() => {
+        console.log('Excel download handler called');
+        console.log('filteredData length:', filteredData.length);
+
+        try {
+            const exportData = filteredData.map((item, index) => ({
+                'No.': index + 1,
+                '콘텐츠 링크': item.contentUrl,
+                '업로드 일자': item.postedDate,
+                '콘텐츠 유형': item.contentType,
+                '인플루언서': item.influencerName,
+                '팔로워 수': item.followerCount,
+                '좋아요 수': item.likes,
+                '댓글 수': item.comments,
+                '조회수': item.views,
+                '공유 수': item.shares,
+                'CPV': item.cpv,
+                'CPE': item.cpe,
+                'ER (%)': item.er,
+                'DM 수신 인원': item.dmReceivedCount,
+                '총 클릭 인원': item.totalClickUsers,
+                '총 클릭 수': item.totalClicks,
+                'CTR (%)': item.ctr,
+                '팔로우 전환': item.followConversionCount,
+                '팔로우 전환율 (%)': item.followConversionRate,
+                '비고': item.notes || ''
+            }));
+
+            console.log('exportData length:', exportData.length);
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '콘텐츠별 성과');
+
+            // Auto-adjust column widths
+            const colWidths = Object.keys(exportData[0] || {}).map(key => ({
+                wch: Math.max(key.length, 15)
+            }));
+            ws['!cols'] = colWidths;
+
+            console.log('Calling XLSX.write...');
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `content_performance_${new Date().toISOString().split('T')[0]}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+            console.log('Download triggered');
+        } catch (error) {
+            console.error('Excel download error:', error);
+        }
+    }, [filteredData]);
+
+    // Grid Data with Injected Detail Rows
+    const gridData = useMemo(() => {
+        const rows: ContentPerformance[] = [];
+        filteredData.forEach(row => {
+            rows.push(row);
+            if (row.id === expandedId) {
+                // Determine detail row properties based on the parent
+                // We create a "dummy" row that acts as the detail container
+                rows.push({
+                    ...row,
+                    id: -row.id, // Unique negative ID for detail row
+                    isDetailRow: true,
+                    parentRow: row
+                });
+            }
+        });
+        return rows;
+    }, [filteredData, expandedId]);
+
+    // Row Height Logic
+    const getRowHeight = useCallback((params: any) => {
+        if (params.data.isDetailRow) {
+            // Calculate height based on number of buttons + padding
+            const buttonCount = params.data.parentRow?.buttonPerformance?.length || 0;
+            const headerHeight = 45; // Title bar
+            const tableHeaderHeight = 35; // Table header
+            const rowHeight = 41; // Table row approx
+            const emptyMessageHeight = 60;
+            const padding = 32; // Outer padding
+
+            if (buttonCount === 0) return headerHeight + tableHeaderHeight + emptyMessageHeight + padding + 20;
+
+            const contentHeight = headerHeight + tableHeaderHeight + (buttonCount * rowHeight);
+            return contentHeight + padding + 10; // Extra buffer
+        }
+        return 70; // Standard row height
+    }, []);
+
+    const isFullWidthRow = useCallback((params: any) => {
+        return params.rowNode.data.isDetailRow;
+    }, []);
+
+    const fullWidthCellRenderer = useCallback((params: any) => {
+        return <ButtonPerformanceDetail data={params.data} />;
+    }, []);
 
     // Detail Cell Renderer (unused but required for types)
     const DetailCellRenderer = useCallback(() => null, []);
@@ -696,96 +871,39 @@ export function PerformanceDashboard({ influencerCount }: PerformanceDashboardPr
                                 className="w-full h-9 pl-9 pr-4 text-sm bg-white border border-[var(--ft-border-primary)] rounded-md focus:border-[var(--ft-color-primary-500)] focus:outline-none transition-colors"
                             />
                         </div>
+                        <CoreButton
+                            variant="secondary"
+                            size="sm"
+                            leftIcon={<Download className="w-4 h-4" />}
+                            onClick={handleExcelDownload}
+                        >
+                            엑셀 다운로드
+                        </CoreButton>
                     </div>
 
                     {/* AG Grid Container */}
                     <div className="flex-1 overflow-hidden">
                         <AgGridReact
                             theme={customAgGridTheme}
-                            rowData={filteredData}
+                            rowData={gridData}
                             columnDefs={columnDefs}
                             defaultColDef={defaultColDef}
                             rowSelection={selectionOptions}
                             pagination={true}
                             paginationPageSize={20}
-                            rowHeight={70}
+                            getRowHeight={getRowHeight}
                             headerHeight={44}
                             animateRows={true}
                             onRowClicked={(params) => {
-                                if (params.data) {
+                                if (params.data && !params.data.isDetailRow) {
                                     setExpandedId(expandedId === params.data.id ? null : params.data.id);
                                 }
                             }}
-                            masterDetail={true}
-                            detailCellRenderer={DetailCellRenderer}
-                            detailRowHeight={150}
-                            isRowMaster={(data) => data.buttonPerformance && data.buttonPerformance.length > 0}
+                            isFullWidthRow={isFullWidthRow}
+                            fullWidthCellRenderer={fullWidthCellRenderer}
                             getRowId={(params) => String(params.data.id)}
                         />
                     </div>
-
-                    {/* Expanded Button Performance Panel */}
-                    {expandedId && (
-                        <div className="border-t border-[var(--ft-border-primary)] bg-[var(--ft-bg-secondary)] p-4 shrink-0 overflow-y-auto max-h-[300px]">
-                            {(() => {
-                                const content = filteredData.find(c => c.id === expandedId);
-                                if (!content) return null;
-                                return (
-                                    <div className="bg-white rounded-xl border border-[var(--ft-border-primary)] overflow-hidden">
-                                        <div className="px-4 py-2 bg-[var(--ft-bg-secondary)] border-b border-[var(--ft-border-primary)] flex items-center justify-between">
-                                            <span className="text-xs font-medium text-[var(--ft-text-secondary)]">
-                                                버튼별 성과 - {content.influencerName}
-                                            </span>
-                                            <button
-                                                onClick={() => setExpandedId(null)}
-                                                className="text-xs text-[var(--ft-text-disabled)] hover:text-[var(--ft-text-primary)]"
-                                            >
-                                                닫기
-                                            </button>
-                                        </div>
-                                        <table className="w-full">
-                                            <thead>
-                                                <tr className="border-b border-[var(--ft-border-secondary)]">
-                                                    <th className="text-center px-4 py-2 text-xs font-medium text-[var(--ft-text-disabled)] w-12">No</th>
-                                                    <th className="text-left px-4 py-2 text-xs font-medium text-[var(--ft-text-disabled)]">버튼명</th>
-                                                    <th className="text-left px-4 py-2 text-xs font-medium text-[var(--ft-text-disabled)]">URL</th>
-                                                    <th className="text-right px-4 py-2 text-xs font-medium text-[var(--ft-text-disabled)]">총 클릭</th>
-                                                    <th className="text-right px-4 py-2 text-xs font-medium text-[var(--ft-text-disabled)]">클릭 인원</th>
-                                                    <th className="text-right px-4 py-2 text-xs font-medium text-[var(--ft-text-disabled)]">CTR</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {content.buttonPerformance.map((btn, idx) => (
-                                                    <tr key={idx} className="border-b border-[var(--ft-border-primary)] last:border-0">
-                                                        <td className="px-4 py-2.5 text-center">
-                                                            <span className="inline-flex items-center justify-center w-5 h-5 bg-[var(--ft-color-primary-100)] text-[var(--ft-color-primary-700)] text-xs font-bold rounded-full">{idx + 1}</span>
-                                                        </td>
-                                                        <td className="px-4 py-2.5 text-sm font-medium text-[var(--ft-text-primary)]">
-                                                            {btn.buttonName}
-                                                        </td>
-                                                        <td className="px-4 py-2.5 text-sm text-[var(--ft-text-secondary)] max-w-[300px] truncate">
-                                                            <a href={btn.url} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--ft-color-primary-600)] hover:underline">
-                                                                {btn.url}
-                                                            </a>
-                                                        </td>
-                                                        <td className="px-4 py-2.5 text-right text-sm text-[var(--ft-text-secondary)]">
-                                                            {formatNumber(btn.clicks)}
-                                                        </td>
-                                                        <td className="px-4 py-2.5 text-right text-sm text-[var(--ft-text-secondary)]">
-                                                            {formatNumber(btn.uniqueClicks)}
-                                                        </td>
-                                                        <td className="px-4 py-2.5 text-right text-sm font-medium text-[var(--ft-color-primary-600)]">
-                                                            {btn.ctr.toFixed(1)}%
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                );
-                            })()}
-                        </div>
-                    )}
                 </div>
             </div>
         </div>
