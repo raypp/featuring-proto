@@ -357,7 +357,7 @@ export function AutomationGroupDetail({
                         onClick={() => setActiveTab('list')}
                     >
                         <List className="w-4 h-4" />
-                        템플릿&협업 관리
+                        협업&가이드
                     </button>
                     <button
                         className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'performance'

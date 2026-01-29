@@ -121,7 +121,7 @@ export function InfluencerSummaryTable({
             ),
         },
         {
-            headerName: "템플릿 요약",
+            headerName: "적용된 자동화 가이드",
             field: "templateCount",
             width: 130,
             cellRenderer: (params: ICellRendererParams<CollaborationInfluencer>) => {

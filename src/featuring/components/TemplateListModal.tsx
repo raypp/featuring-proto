@@ -75,7 +75,7 @@ export function TemplateListModal({ isOpen, onClose, templates = mockTemplates, 
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-[var(--ft-border-primary)] flex items-center justify-between shrink-0">
                     <h2 className="text-lg font-bold text-[var(--ft-text-primary)]">
-                        템플릿 관리
+                        자동화 가이드 템플릿 관리
                     </h2>
                     <button onClick={onClose} className="p-2 hover:bg-[var(--ft-bg-secondary)] rounded-lg transition-colors">
                         <X className="w-5 h-5 text-[var(--ft-text-secondary)]" />

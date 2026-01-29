@@ -340,7 +340,7 @@ export function InfluencerDeliveryTable({
                         인플루언서 추가
                     </CoreButton>
                     <CoreButton variant="secondary" size="md" leftIcon={<Settings className="w-4 h-4" />} onClick={onOpenTemplateModal}>
-                        템플릿 관리
+                        자동화 가이드 템플릿 관리
                     </CoreButton>
                     <CoreButton variant="secondary" size="md" leftIcon={<Upload className="w-4 h-4" />} onClick={() => { }}>
                         엑셀 업로드

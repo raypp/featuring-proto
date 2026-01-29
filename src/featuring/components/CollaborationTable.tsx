@@ -103,7 +103,7 @@ export function CollaborationTable({
                         인플루언서 추가
                     </CoreButton>
                     <CoreButton variant="tertiary" size="sm" onClick={onOpenTemplateModal} leftIcon={<Settings className="w-4 h-4" />}>
-                        템플릿 관리
+                        자동화 가이드 템플릿 관리
                     </CoreButton>
                 </div>
             </div>
@@ -163,7 +163,7 @@ export function CollaborationTable({
                 <div className="pl-1">#</div>
                 <div>인플루언서</div>
                 <div className="text-center">스튜디오 연결</div>
-                <div>템플릿 요약</div>
+                <div>적용된 자동화 가이드</div>
                 <div>전달 요약</div>
                 <div className="text-right">마지막 전달일</div>
                 <div />
