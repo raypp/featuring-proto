@@ -6,7 +6,7 @@ interface ServiceSelectorProps {
 
 export function ServiceSelector({ onSelectService }: ServiceSelectorProps) {
   return (
-    <div className="flex h-screen w-screen items-center justify-center bg-[var(--ft-bg-secondary)]">
+    <div className="flex h-screen w-full items-center justify-center bg-[var(--ft-bg-secondary)]">
       <div className="flex flex-col items-center gap-8">
         <div className="text-center">
           <h1 className="text-[32px] font-bold text-[var(--ft-text-primary)] mb-2">

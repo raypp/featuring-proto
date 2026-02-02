@@ -60,11 +60,54 @@ export interface InfluencerTemplateVars {
 }
 
 // ========================================
+// 일괄 DM 발송 타입 정의
+// ========================================
+
+// DM 발송 대상
+export interface DMRecipient {
+    influencerId: number;
+    username: string;
+    displayName: string;
+    profileImage?: string;
+    channelName?: string;
+    isValid: boolean;           // 발송 가능 여부
+    invalidReason?: string;     // 발송 불가 사유 (비공개, DM 차단 등)
+}
+
+// DM 발송 요청
+export interface BulkDMRequest {
+    recipients: number[];       // influencer_id 배열
+    messageContent: string;     // 메시지 본문
+    variables: Record<string, string>;  // 치환 변수
+    imageUrl?: string;
+    ctaLinks?: CTALink[];
+    isAdContent: boolean;       // 광고성 여부
+    sendType: 'immediate' | 'scheduled';
+    scheduledAt?: string;       // UTC timestamp
+    individualLinks?: Array<{   // 인플루언서별 개별 링크 설정
+        influencerId: number;
+        ctaLinks: CTALink[];
+    }>;
+}
+
+// DM 발송 결과
+export interface BulkDMResult {
+    totalCount: number;
+    successCount: number;
+    failedCount: number;
+    failedDetails: Array<{
+        influencerId: number;
+        reason: string;
+    }>;
+}
+
+// ========================================
 // 협업 관리 Split View 타입 정의
+// ========================================
 // ========================================
 
 // 템플릿별 전달 상태
-export type TemplateDeliveryStatus = 'not_delivered' | 'pending' | 'delivered' | 'failed';
+export type TemplateDeliveryStatus = 'not_delivered' | 'draft' | 'pending' | 'delivered' | 'failed';
 
 // 인플루언서별 템플릿 할당 정보 (스냅샷 포함)
 export interface InfluencerTemplateAssignment {
@@ -83,6 +126,12 @@ export interface InfluencerTemplateAssignment {
         imageUrl?: string;
         ctaLinks: CTALink[];
         triggerKeywords?: string[];
+        postData?: {
+            id: string;
+            image: string;
+            caption: string;
+            date: string;
+        };
     };
     createdAt: string;
     lastModifiedAt: string;
@@ -96,6 +145,7 @@ export interface CollaborationInfluencer {
     displayName: string;
     profileImage?: string;
     isConnected: boolean;                    // 스튜디오 연결 상태
+    phoneNumber?: string;                    // 알림톡 발송용 전화번호
 
     // 템플릿 요약 정보
     templateCount: number;                   // 적용된 템플릿 개수
@@ -103,6 +153,7 @@ export interface CollaborationInfluencer {
 
     // 전달 요약 정보
     deliverySummary: {
+        draft: number;        // 임시 저장됨
         delivered: number;
         pending: number;
         failed: number;

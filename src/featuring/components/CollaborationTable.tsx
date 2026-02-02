@@ -11,51 +11,75 @@ import { cn } from "@/app/components/ui/utils";
 interface CollaborationTableProps {
     influencers: CollaborationInfluencer[];
     templates: DMTemplate[];
+    selectedInfluencerId?: number; // For highlighting selected row
     onOpenTemplateModal: () => void;
     onAddInfluencer?: () => void;
+    onRowClick?: (influencer: CollaborationInfluencer) => void; // Side Sheet - single mode
+    onDeliveryClick?: (influencer: CollaborationInfluencer, assignment: InfluencerTemplateAssignment) => void; // Side Sheet - detail mode
     onBulkApplyTemplate?: (influencerIds: number[], templateId: number) => void;
     onBulkDeliver?: (influencerIds: number[]) => void;
     onUpdateVariable?: (influencerId: number, assignmentId: number, key: string, value: string) => void;
     onDeliverTemplate?: (influencerId: number, assignmentId: number) => void;
     onCancelDelivery?: (influencerId: number, assignmentId: number) => void;
     onAddTemplateToInfluencer?: (influencerId: number) => void;
+    onSelectionChange?: (selectedIds: number[]) => void; // For bulk mode sync
 }
 
 export function CollaborationTable({
     influencers,
     templates,
+    selectedInfluencerId,
     onOpenTemplateModal,
     onAddInfluencer,
+    onRowClick,
+    onDeliveryClick,
     onBulkApplyTemplate,
     onBulkDeliver,
     onUpdateVariable,
     onDeliverTemplate,
     onCancelDelivery,
-    onAddTemplateToInfluencer
+    onAddTemplateToInfluencer,
+    onSelectionChange
 }: CollaborationTableProps) {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedInfluencerIds, setSelectedInfluencerIds] = useState<number[]>([]);
-    const [expandedInfluencerId, setExpandedInfluencerId] = useState<number | null>(null);
     const [bulkTemplateId, setBulkTemplateId] = useState<number | "">("");
+    const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'delivered' | 'failed'>('all');
 
-    // Detail Modal State
+    // Detail Modal State (kept for backward compatibility)
     const [detailAssignment, setDetailAssignment] = useState<InfluencerTemplateAssignment | null>(null);
 
     // Filter Logic
     const filteredData = useMemo(() => {
-        return influencers.filter(inf =>
-            inf.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            inf.username.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [influencers, searchTerm]);
+        return influencers.filter(inf => {
+            // Text search
+            const matchesSearch = inf.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                inf.username.toLowerCase().includes(searchTerm.toLowerCase());
+
+            // Status filter
+            let matchesStatus = true;
+            if (statusFilter === 'draft') {
+                matchesStatus = (inf.deliverySummary.draft || 0) > 0;
+            } else if (statusFilter === 'delivered') {
+                matchesStatus = inf.deliverySummary.delivered > 0;
+            } else if (statusFilter === 'failed') {
+                matchesStatus = inf.deliverySummary.failed > 0;
+            }
+
+            return matchesSearch && matchesStatus;
+        });
+    }, [influencers, searchTerm, statusFilter]);
 
     // Handlers
     const toggleSelection = (id: number) => {
+        let newSelection: number[];
         if (selectedInfluencerIds.includes(id)) {
-            setSelectedInfluencerIds(prev => prev.filter(i => i !== id));
+            newSelection = selectedInfluencerIds.filter(i => i !== id);
         } else {
-            setSelectedInfluencerIds(prev => [...prev, id]);
+            newSelection = [...selectedInfluencerIds, id];
         }
+        setSelectedInfluencerIds(newSelection);
+        onSelectionChange?.(newSelection);
     };
 
     const handleCopyLink = (assignmentId: number) => {
@@ -66,15 +90,14 @@ export function CollaborationTable({
     };
 
     const toggleAll = () => {
+        let newSelection: number[];
         if (selectedInfluencerIds.length === filteredData.length) {
-            setSelectedInfluencerIds([]);
+            newSelection = [];
         } else {
-            setSelectedInfluencerIds(filteredData.map(i => i.influencerId));
+            newSelection = filteredData.map(i => i.influencerId);
         }
-    };
-
-    const toggleExpand = (id: number) => {
-        setExpandedInfluencerId(prev => prev === id ? null : id);
+        setSelectedInfluencerIds(newSelection);
+        onSelectionChange?.(newSelection);
     };
 
     const handleBulkApply = () => {
@@ -82,21 +105,34 @@ export function CollaborationTable({
         onBulkApplyTemplate?.(selectedInfluencerIds, bulkTemplateId as number);
         setBulkTemplateId("");
         setSelectedInfluencerIds([]);
+        onSelectionChange?.([]);
     };
 
     return (
         <div className="flex flex-col h-full bg-white text-sm">
             {/* Header Controls */}
             <div className="px-4 py-3 flex items-center justify-between border-b border-[var(--ft-border-primary)] shrink-0 bg-white z-10">
-                <div className="relative w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                        type="text"
-                        placeholder="인플루언서 검색"
-                        className="w-full h-9 pl-9 pr-4 text-sm border rounded-md focus:border-blue-500 focus:outline-none transition-colors"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                <div className="flex items-center gap-3">
+                    <div className="relative w-52">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="인플루언서 검색"
+                            className="w-full h-9 pl-9 pr-4 text-sm border rounded-md focus:border-blue-500 focus:outline-none transition-colors"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as 'all' | 'draft' | 'delivered' | 'failed')}
+                        className="h-9 text-sm border rounded-md px-3 text-gray-700 focus:border-blue-500 focus:outline-none"
+                    >
+                        <option value="all">전체 상태</option>
+                        <option value="draft">임시저장됨</option>
+                        <option value="delivered">전달완료</option>
+                        <option value="failed">실패</option>
+                    </select>
                 </div>
                 <div className="flex items-center gap-2">
                     <CoreButton variant="tertiary" size="sm" onClick={onAddInfluencer} leftIcon={<Plus className="w-4 h-4" />}>
@@ -172,18 +208,18 @@ export function CollaborationTable({
             {/* Table Body */}
             <div className="flex-1 overflow-y-auto">
                 {filteredData.map((influencer) => {
-                    const isExpanded = expandedInfluencerId === influencer.influencerId;
                     const isSelected = selectedInfluencerIds.includes(influencer.influencerId);
+                    const isRowHighlighted = selectedInfluencerId === influencer.influencerId;
 
                     return (
-                        <div key={influencer.influencerId} className="flex flex-col border-b last:border-0 hover:bg-gray-50 transition-colors">
+                        <div key={influencer.influencerId} className="flex flex-col border-b last:border-0 transition-colors">
                             {/* Master Row - Updated Columns */}
                             <div
                                 className={cn(
                                     "grid grid-cols-[40px_1.8fr_100px_1fr_1.2fr_100px_40px] gap-2 px-6 py-3 items-center cursor-pointer",
-                                    isExpanded ? "bg-blue-50/50" : ""
+                                    isRowHighlighted ? "bg-blue-50 border-l-2 border-l-blue-500" : "hover:bg-gray-50"
                                 )}
-                                onClick={() => toggleExpand(influencer.influencerId)}
+                                onClick={() => onRowClick?.(influencer)}
                             >
                                 <div className="pl-1" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                                     <input
@@ -232,7 +268,7 @@ export function CollaborationTable({
                                                 <button
                                                     key={assignment.id}
                                                     className="flex items-center gap-1 px-2 py-1 rounded-md border border-gray-200 bg-white hover:bg-gray-50 text-[11px] font-medium text-gray-700 transition-colors shadow-sm max-w-[120px] truncate"
-                                                    onClick={() => setDetailAssignment(assignment)}
+                                                    onClick={() => onDeliveryClick?.(influencer, assignment)}
                                                     title={assignment.templateName}
                                                 >
                                                     <span className="truncate">{assignment.templateName}</span>
@@ -259,6 +295,12 @@ export function CollaborationTable({
 
                                 {/* Delivery Summary */}
                                 <div className="flex items-center gap-2 text-xs">
+                                    {(influencer.deliverySummary.draft || 0) > 0 && (
+                                        <>
+                                            <span className="text-orange-600 font-medium whitespace-nowrap">임시저장 {influencer.deliverySummary.draft}</span>
+                                            <span className="text-gray-300">|</span>
+                                        </>
+                                    )}
                                     <span className="text-green-600 font-medium whitespace-nowrap">전달 {influencer.deliverySummary.delivered}</span>
                                     <span className="text-gray-300">|</span>
                                     <span className="text-amber-600 font-medium whitespace-nowrap">대기 {influencer.deliverySummary.pending}</span>
@@ -271,218 +313,14 @@ export function CollaborationTable({
                                     {influencer.lastDeliveredAt ? format(new Date(influencer.lastDeliveredAt), 'yyyy.MM.dd') : '-'}
                                 </div>
 
-                                {/* Expand Icon */}
+                                {/* Arrow Icon (instead of expand) */}
                                 <div className="flex justify-center text-gray-400">
-                                    {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                    <ChevronDown size={16} className={cn(
+                                        "transform -rotate-90 transition-transform",
+                                        isRowHighlighted && "text-blue-500"
+                                    )} />
                                 </div>
                             </div>
-
-                            {/* Detail Table (Expanded) - Updated Columns */}
-                            {isExpanded && (
-                                <div className="bg-gray-50/80 p-4 border-t shadow-inner">
-                                    <div className="bg-white rounded-lg border overflow-hidden">
-                                        <table className="w-full text-xs">
-                                            <thead className="bg-gray-100 border-b text-gray-500">
-                                                <tr>
-                                                    <th className="px-4 py-2 text-left font-medium w-[200px]">템플릿</th>
-                                                    <th className="px-4 py-2 text-left font-medium w-[90px]">전달 상태</th>
-                                                    <th className="px-4 py-2 text-left font-medium w-[90px]">자동화 상태</th>
-                                                    <th className="px-4 py-2 text-left font-medium">버튼 URL</th>
-                                                    <th className="px-4 py-2 text-left font-medium w-[90px]">전달일</th>
-                                                    <th className="px-4 py-2 text-right font-medium w-[120px]">액션</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y">
-                                                {influencer.templateAssignments.length === 0 ? (
-                                                    <tr>
-                                                        <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
-                                                            할당된 템플릿이 없습니다.
-                                                        </td>
-                                                    </tr>
-                                                ) : (
-                                                    influencer.templateAssignments.map((assignment) => {
-                                                        const buttons = assignment.snapshotContent?.ctaLinks || [];
-                                                        const isDelivered = assignment.deliveryStatus === 'delivered';
-                                                        const isPending = assignment.deliveryStatus === 'pending';
-                                                        const isNotDelivered = assignment.deliveryStatus === 'not_delivered';
-                                                        const isFailed = assignment.deliveryStatus === 'failed';
-
-                                                        // URL editing is disabled if already delivered
-                                                        const isUrlDisabled = isDelivered;
-
-                                                        // Check if influencer is disconnected
-                                                        const isDisconnected = !influencer.isConnected;
-
-                                                        // Check if all required variable URLs are filled
-                                                        const variableButtons = buttons.filter(btn => btn.isVariable && btn.variableName);
-                                                        const hasAllRequiredUrls = variableButtons.every(btn => {
-                                                            const value = assignment.variables[btn.variableName!];
-                                                            return value && value.trim().length > 0;
-                                                        });
-
-                                                        // Can deliver only if connected and all required URLs filled
-                                                        const canDeliver = !isDisconnected && hasAllRequiredUrls;
-
-                                                        return (
-                                                            <tr key={assignment.id} className="hover:bg-gray-50">
-                                                                {/* Template Name */}
-                                                                <td className="px-4 py-3 align-middle">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <button
-                                                                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-gray-200 bg-white hover:bg-gray-50 text-xs font-medium text-gray-700 transition-colors shadow-sm"
-                                                                            onClick={() => setDetailAssignment(assignment)}
-                                                                        >
-                                                                            {assignment.templateName}
-                                                                            <ExternalLink size={12} className="text-gray-400" />
-                                                                        </button>
-                                                                        <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-gray-50 text-gray-500">
-                                                                            v{assignment.snapshotVersion}
-                                                                        </Badge>
-                                                                    </div>
-                                                                </td>
-
-                                                                {/* Delivery Status */}
-                                                                <td className="px-4 py-3 align-middle">
-                                                                    {isDelivered && <span className="text-green-600 font-medium flex items-center gap-1"><CheckCircle2 size={12} /> 전달됨</span>}
-                                                                    {isPending && <span className="text-amber-600 font-medium flex items-center gap-1"><Clock size={12} /> 대기중</span>}
-                                                                    {isFailed && <span className="text-red-600 font-medium flex items-center gap-1"><AlertCircle size={12} /> 실패</span>}
-                                                                    {isNotDelivered && <span className="text-gray-400">미전달</span>}
-                                                                </td>
-
-                                                                {/* Automation Status */}
-                                                                <td className="px-4 py-3 align-middle">
-                                                                    <div className="flex items-center gap-1">
-                                                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                                                                        <span className="text-gray-600">작동중</span>
-                                                                    </div>
-                                                                </td>
-
-                                                                {/* Button URL */}
-                                                                <td className="px-4 py-3 align-middle">
-                                                                    <div className="flex flex-col gap-1.5">
-                                                                        {buttons.length === 0 && <span className="text-gray-400">-</span>}
-                                                                        {buttons.map((btn, idx) => {
-                                                                            if (!btn.isVariable || !btn.variableName) return null;
-
-                                                                            return (
-                                                                                <div key={idx} className="flex items-center gap-2">
-                                                                                    <span className="text-gray-500 w-14 text-right shrink-0 truncate text-[11px] bg-gray-100 px-1 rounded">
-                                                                                        {btn.buttonName}
-                                                                                    </span>
-                                                                                    <Input
-                                                                                        className={cn(
-                                                                                            "h-7 text-xs flex-1 min-w-[180px]",
-                                                                                            isUrlDisabled && "bg-gray-100 text-gray-500 cursor-not-allowed"
-                                                                                        )}
-                                                                                        placeholder="https://..."
-                                                                                        defaultValue={assignment.variables[btn.variableName] || ''}
-                                                                                        disabled={isUrlDisabled}
-                                                                                        onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
-                                                                                            if (!isUrlDisabled) {
-                                                                                                onUpdateVariable?.(
-                                                                                                    influencer.influencerId,
-                                                                                                    assignment.id,
-                                                                                                    btn.variableName!,
-                                                                                                    e.target.value
-                                                                                                );
-                                                                                            }
-                                                                                        }}
-                                                                                    />
-                                                                                </div>
-                                                                            );
-                                                                        })}
-                                                                    </div>
-                                                                </td>
-
-                                                                {/* Delivery Date */}
-                                                                <td className="px-4 py-3 align-middle text-gray-500">
-                                                                    {assignment.deliveredAt ? format(new Date(assignment.deliveredAt), 'MM.dd HH:mm') : '-'}
-                                                                </td>
-
-                                                                {/* Action Button */}
-                                                                <td className="px-4 py-3 align-middle text-right whitespace-nowrap">
-                                                                    {isNotDelivered && (
-                                                                        <div className="flex flex-col items-end gap-1">
-                                                                            <div className="flex items-center gap-1">
-                                                                                <CoreButton
-                                                                                    size="sm"
-                                                                                    variant="secondary"
-                                                                                    className="px-2"
-                                                                                    onClick={() => handleCopyLink(assignment.id)}
-                                                                                    title="링크 복사 (수동 전달)"
-                                                                                >
-                                                                                    <Link size={14} className="text-gray-500" />
-                                                                                </CoreButton>
-                                                                                <CoreButton
-                                                                                    size="sm"
-                                                                                    variant="primary"
-                                                                                    onClick={() => onDeliverTemplate?.(influencer.influencerId, assignment.id)}
-                                                                                    disabled={!canDeliver}
-                                                                                >
-                                                                                    전달하기
-                                                                                </CoreButton>
-                                                                            </div>
-                                                                            {isDisconnected && (
-                                                                                <span className="text-[10px] text-red-500">계정 연결 필요</span>
-                                                                            )}
-                                                                            {!isDisconnected && !hasAllRequiredUrls && (
-                                                                                <span className="text-[10px] text-amber-600">URL 입력 필요</span>
-                                                                            )}
-                                                                        </div>
-                                                                    )}
-                                                                    {isPending && (
-                                                                        <CoreButton
-                                                                            size="sm"
-                                                                            variant="secondary"
-                                                                            className="text-red-600 bg-red-50 border-red-200 hover:bg-red-100"
-                                                                            onClick={() => onCancelDelivery?.(influencer.influencerId, assignment.id)}
-                                                                        >
-                                                                            전달취소
-                                                                        </CoreButton>
-                                                                    )}
-                                                                    {isDelivered && (
-                                                                        <CoreButton
-                                                                            size="sm"
-                                                                            variant="tertiary"
-                                                                            disabled
-                                                                        >
-                                                                            전달완료
-                                                                        </CoreButton>
-                                                                    )}
-                                                                    {isFailed && (
-                                                                        <div className="flex flex-col items-end gap-1">
-                                                                            <CoreButton
-                                                                                size="sm"
-                                                                                variant="secondary"
-                                                                                onClick={() => onDeliverTemplate?.(influencer.influencerId, assignment.id)}
-                                                                                disabled={!canDeliver}
-                                                                            >
-                                                                                재시도
-                                                                            </CoreButton>
-                                                                            {isDisconnected && (
-                                                                                <span className="text-[10px] text-red-500">계정 연결 필요</span>
-                                                                            )}
-                                                                        </div>
-                                                                    )}
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })
-                                                )}
-                                            </tbody>
-                                        </table>
-
-                                        {/* Add Template Button - Full Width at Bottom */}
-                                        <button
-                                            className="w-full py-3 px-4 flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-blue-600 hover:bg-blue-50 border-t transition-colors"
-                                            onClick={() => onAddTemplateToInfluencer?.(influencer.influencerId)}
-                                        >
-                                            <Plus className="w-4 h-4" />
-                                            전달할 템플릿 추가
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     );
                 })}

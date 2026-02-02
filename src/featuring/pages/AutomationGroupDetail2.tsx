@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { ChevronLeft, MoreHorizontal, Filter, Download, Plus, Search, CheckCircle2, AlertCircle, Clock, Save, FileText, BarChart2, GitGraph, List, ChevronRight, Users } from "lucide-react";
+import { ChevronLeft, MoreHorizontal, Filter, Download, Plus, Search, CheckCircle2, AlertCircle, Clock, Save, FileText, BarChart2, GitGraph, List, ChevronRight, Users, Send, X } from "lucide-react";
 import { CoreButton, CoreAvatar } from "../../design-system";
-import { AutomationGroup, CollaborationInfluencer, DMTemplate, InfluencerTemplateAssignment, AutomationInfluencer } from "../types";
+import { AutomationGroup, CollaborationInfluencer, DMTemplate, InfluencerTemplateAssignment, AutomationInfluencer, DMRecipient } from "../types";
 import { CollaborationTable } from "../components/CollaborationTable";
 import { TemplateListModal } from "../components/TemplateListModal";
 import { AddInfluencerModal } from "../components/AddInfluencerModal";
@@ -9,6 +9,13 @@ import { PerformanceDashboard } from "../components/PerformanceDashboard";
 import { DeliveryConfirmationModal } from "../components/DeliveryConfirmationModal";
 import { CancelDeliveryModal } from "../components/CancelDeliveryModal";
 import { CollaborationSideSheet, SideSheetMode, DraftGuideData } from "../components/CollaborationSideSheet";
+import { BulkGuideSetupModal } from "../components/BulkGuideSetupModal";
+
+// ... (other imports)
+
+// ... inside component
+
+
 
 type TabType = 'list' | 'performance';
 
@@ -95,7 +102,7 @@ function generateMockInfluencers(templates: DMTemplate[]): CollaborationInfluenc
     });
 }
 
-export function AutomationGroupDetail({
+export function AutomationGroupDetail2({
     group,
     template,
     influencers = [],
@@ -107,6 +114,7 @@ export function AutomationGroupDetail({
     const [activeTab, setActiveTab] = useState<TabType>('list');
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [isAddInfluencerModalOpen, setIsAddInfluencerModalOpen] = useState(false);
+    const [isBulkDMModalOpen, setIsBulkDMModalOpen] = useState(false);
 
     // Side Sheet States
     const [selectedInfluencer, setSelectedInfluencer] = useState<CollaborationInfluencer | null>(null);
@@ -186,6 +194,36 @@ export function AutomationGroupDetail({
         );
     }, [collaborationInfluencers, selectedInfluencerIds]);
 
+    // Convert selected influencers to DMRecipient format for bulk DM modal
+    const dmRecipients: DMRecipient[] = useMemo(() => {
+        return bulkSelectedInfluencers.map(inf => ({
+            influencerId: inf.influencerId,
+            username: inf.username,
+            displayName: inf.displayName,
+            profileImage: inf.profileImage,
+            channelName: inf.displayName,
+            isValid: inf.isConnected, // 연결된 계정만 발송 가능
+            invalidReason: !inf.isConnected ? '계정 연결 안됨' : undefined,
+        }));
+    }, [bulkSelectedInfluencers]);
+
+    // Handle bulk DM send
+    const handleBulkDMSend = (data: {
+        recipientIds: number[];
+        messageContent: string;
+        imageUrl?: string;
+        isAdContent: boolean;
+        sendType: 'immediate' | 'scheduled';
+        scheduledAt?: string;
+        individualLinks?: any;
+    }) => {
+        console.log('Bulk DM Send:', data);
+        alert(`${data.recipientIds.length}명에게 일괄 전달 설정이 완료되었습니다.`);
+        // Reset selection after sending
+        setSelectedInfluencerIds([]);
+        setIsBulkDMModalOpen(false);
+    };
+
     const handleSaveTemplate = (newTemplate: DMTemplate) => {
         setTemplates(prev => {
             if (newTemplate.id) {
@@ -212,7 +250,6 @@ export function AutomationGroupDetail({
                 )
             };
         }));
-        // Optional: Show toast "Saved: key=value"
     };
 
     const handleDeliverSingle = (influencerId: number, assignmentId: number) => {
@@ -247,7 +284,7 @@ export function AutomationGroupDetail({
                     ...inf.deliverySummary,
                     delivered: inf.deliverySummary.delivered + 1,
                     notDelivered: Math.max(0, inf.deliverySummary.notDelivered - 1),
-                    pending: Math.max(0, inf.deliverySummary.pending - 1) // Handle pending transition too
+                    pending: Math.max(0, inf.deliverySummary.pending - 1)
                 }
             };
         }));
@@ -255,25 +292,6 @@ export function AutomationGroupDetail({
         setDeliveryConfirmation(null);
     };
 
-    const handleStopSingle = (influencerId: number, assignmentId: number) => {
-        setCollaborationInfluencers(prev => prev.map(inf => {
-            if (inf.influencerId !== influencerId) return inf;
-            const updatedAssignments = inf.templateAssignments.map(a =>
-                a.id === assignmentId ? { ...a, deliveryStatus: 'not_delivered' as const } : a
-            );
-            return {
-                ...inf,
-                templateAssignments: updatedAssignments,
-                deliverySummary: {
-                    ...inf.deliverySummary,
-                    pending: Math.max(0, inf.deliverySummary.pending - 1),
-                    notDelivered: inf.deliverySummary.notDelivered + 1
-                }
-            };
-        }));
-    };
-
-    // Cancel a pending delivery (delivered but not yet accepted)
     const handleCancelDelivery = (influencerId: number, assignmentId: number) => {
         const influencer = collaborationInfluencers.find(inf => inf.influencerId === influencerId);
         const assignment = influencer?.templateAssignments.find(a => a.id === assignmentId);
@@ -310,7 +328,6 @@ export function AutomationGroupDetail({
         setCancelConfirmation(null);
     };
 
-    // Add influencers from modal
     const handleAddInfluencers = (newInfluencers: Partial<AutomationInfluencer>[]) => {
         const mappedInfluencers: CollaborationInfluencer[] = newInfluencers.map(inf => ({
             id: inf.id || Date.now(),
@@ -334,25 +351,19 @@ export function AutomationGroupDetail({
         setCollaborationInfluencers(prev => [...prev, ...mappedInfluencers]);
     };
 
-    // Add a new template to a specific influencer
     const handleAddTemplateToInfluencer = (influencerId: number) => {
-        // For now, show an alert. In a real app, this would open a template selection modal.
-        alert(`인플루언서 ${influencerId}에게 템플릿을 추가합니다. (템플릿 선택 모달 구현 필요)`);
+        alert(`인플루언서 ${influencerId}에게 템플릿을 추가합니다.`);
     };
 
-    // Save as draft handler
     const handleSaveAsDraft = (influencerId: number, draftData: DraftGuideData) => {
-        // Save to draft map
         setDraftGuides(prev => {
             const newMap = new Map(prev);
             newMap.set(influencerId, draftData);
             return newMap;
         });
 
-        // Update influencer's draft count
         setCollaborationInfluencers(prev => prev.map(inf => {
             if (inf.influencerId !== influencerId) return inf;
-            // Check if this is a new draft or updating existing
             const existingDraft = draftGuides.get(influencerId);
             const draftIncrement = existingDraft ? 0 : 1;
             return {
@@ -363,12 +374,9 @@ export function AutomationGroupDetail({
                 },
             };
         }));
-
-        // Show feedback
         alert(`가이드가 임시 저장되었습니다.`);
     };
 
-    // Campaign status helper
     const getCampaignStatusBadge = (status: string) => {
         switch (status) {
             case 'active':
@@ -437,65 +445,95 @@ export function AutomationGroupDetail({
             {/* Content Area */}
             <div className="flex-1 overflow-hidden">
                 {activeTab === 'list' && (
-                    <div className="h-full flex bg-white">
-                        {/* Left: Table */}
-                        <div className="flex-1 overflow-hidden border-r border-gray-200">
-                            <CollaborationTable
-                                influencers={collaborationInfluencers}
-                                templates={templates}
-                                selectedInfluencerId={selectedInfluencer?.influencerId}
-                                onOpenTemplateModal={() => setIsTemplateModalOpen(true)}
-                                onAddInfluencer={() => setIsAddInfluencerModalOpen(true)}
-                                onRowClick={(influencer) => {
-                                    setSelectedInfluencer(influencer);
-                                    setSelectedDelivery(null);
-                                }}
-                                onDeliveryClick={(influencer, assignment) => {
-                                    setSelectedInfluencer(influencer);
-                                    setSelectedDelivery({ influencer, assignment });
-                                }}
-                                onUpdateVariable={handleUpdateVariable}
-                                onDeliverTemplate={handleDeliverSingle}
-                                onCancelDelivery={handleCancelDelivery}
-                                onAddTemplateToInfluencer={handleAddTemplateToInfluencer}
-                                onBulkApplyTemplate={(ids, tId) => alert(`Bulk apply template ${tId} to ${ids.length} influencers`)}
-                                onBulkDeliver={(ids) => alert(`Bulk deliver to ${ids.length} influencers`)}
-                                onSelectionChange={(ids) => {
-                                    setSelectedInfluencerIds(ids);
-                                    if (ids.length > 1) {
+                    <div className="h-full flex flex-col bg-white">
+                        {/* Action Bar - appears when 2+ influencers are selected */}
+                        {selectedInfluencerIds.length >= 2 && (
+                            <div className="px-4 py-3 bg-[var(--ft-color-primary-50)] border-b border-[var(--ft-color-primary-100)] flex items-center justify-between shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <span className="font-bold text-[var(--ft-color-primary-700)]">
+                                        {selectedInfluencerIds.length}명 선택됨
+                                    </span>
+                                    <span className="h-4 w-px bg-[var(--ft-color-primary-200)]" />
+                                    <button
+                                        onClick={() => setSelectedInfluencerIds([])}
+                                        className="text-sm text-[var(--ft-color-primary-600)] hover:text-[var(--ft-color-primary-800)]"
+                                    >
+                                        선택 해제
+                                    </button>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <CoreButton
+                                        variant="primary"
+                                        size="sm"
+                                        rightIcon={<Send className="w-4 h-4" />}
+                                        onClick={() => setIsBulkDMModalOpen(true)}
+                                    >
+                                        일괄 설정하여 전달하기
+                                    </CoreButton>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex-1 flex overflow-hidden">
+                            {/* Left: Table */}
+                            <div className="flex-1 overflow-hidden border-r border-gray-200">
+                                <CollaborationTable
+                                    influencers={collaborationInfluencers}
+                                    templates={templates}
+                                    selectedInfluencerId={selectedInfluencer?.influencerId}
+                                    onOpenTemplateModal={() => setIsTemplateModalOpen(true)}
+                                    onAddInfluencer={() => setIsAddInfluencerModalOpen(true)}
+                                    onRowClick={(influencer) => {
+                                        setSelectedInfluencer(influencer);
+                                        setSelectedDelivery(null);
+                                    }}
+                                    onDeliveryClick={(influencer, assignment) => {
+                                        setSelectedInfluencer(influencer);
+                                        setSelectedDelivery({ influencer, assignment });
+                                    }}
+                                    onUpdateVariable={handleUpdateVariable}
+                                    onDeliverTemplate={handleDeliverSingle}
+                                    onCancelDelivery={handleCancelDelivery}
+                                    onAddTemplateToInfluencer={handleAddTemplateToInfluencer}
+                                    onBulkApplyTemplate={(ids, tId) => alert(`Bulk apply template ${tId} to ${ids.length} influencers`)}
+                                    onBulkDeliver={(ids) => alert(`Bulk deliver to ${ids.length} influencers`)}
+                                    onSelectionChange={(ids) => {
+                                        setSelectedInfluencerIds(ids);
+                                        if (ids.length > 1) {
+                                            setSelectedInfluencer(null);
+                                            setSelectedDelivery(null);
+                                        }
+                                    }}
+                                />
+                            </div>
+
+                            {/* Right: Side Sheet (1.1x wider: ~480px) */}
+                            <div className="w-[480px] shrink-0 border-l border-gray-100 bg-gray-50 overflow-hidden">
+                                <CollaborationSideSheet
+                                    mode={sideSheetMode}
+                                    selectedInfluencer={selectedInfluencer || undefined}
+                                    selectedInfluencers={bulkSelectedInfluencers}
+                                    selectedDelivery={selectedDelivery || undefined}
+                                    templates={templates}
+                                    draftData={selectedInfluencer ? getDraftForInfluencer(selectedInfluencer.influencerId) : undefined}
+                                    onClose={() => {
                                         setSelectedInfluencer(null);
                                         setSelectedDelivery(null);
-                                    }
-                                }}
-                            />
-                        </div>
-
-                        {/* Right: Side Sheet (1.1x wider: ~480px) */}
-                        <div className="w-[480px] shrink-0 border-l border-gray-100 bg-gray-50 overflow-hidden">
-                            <CollaborationSideSheet
-                                mode={sideSheetMode}
-                                selectedInfluencer={selectedInfluencer || undefined}
-                                selectedInfluencers={bulkSelectedInfluencers}
-                                selectedDelivery={selectedDelivery || undefined}
-                                templates={templates}
-                                draftData={selectedInfluencer ? getDraftForInfluencer(selectedInfluencer.influencerId) : undefined}
-                                onClose={() => {
-                                    setSelectedInfluencer(null);
-                                    setSelectedDelivery(null);
-                                }}
-                                onBackToInfluencer={() => {
-                                    setSelectedDelivery(null);
-                                }}
-                                onDeliverTemplate={handleDeliverSingle}
-                                onCancelDelivery={handleCancelDelivery}
-                                onUpdateVariable={handleUpdateVariable}
-                                onBulkDeliver={(ids) => alert(`Bulk deliver to ${ids.length} influencers`)}
-                                onViewDeliveryDetail={(influencer, assignment) => {
-                                    setSelectedDelivery({ influencer, assignment });
-                                }}
-                                onAddTemplateToInfluencer={handleAddTemplateToInfluencer}
-                                onSaveAsDraft={handleSaveAsDraft}
-                            />
+                                    }}
+                                    onBackToInfluencer={() => {
+                                        setSelectedDelivery(null);
+                                    }}
+                                    onDeliverTemplate={handleDeliverSingle}
+                                    onCancelDelivery={handleCancelDelivery}
+                                    onUpdateVariable={handleUpdateVariable}
+                                    onBulkDeliver={(ids) => alert(`Bulk deliver to ${ids.length} influencers`)}
+                                    onViewDeliveryDetail={(influencer, assignment) => {
+                                        setSelectedDelivery({ influencer, assignment });
+                                    }}
+                                    onAddTemplateToInfluencer={handleAddTemplateToInfluencer}
+                                    onSaveAsDraft={handleSaveAsDraft}
+                                />
+                            </div>
                         </div>
                     </div>
                 )}
@@ -535,6 +573,20 @@ export function AutomationGroupDetail({
                 isOpen={!!cancelConfirmation && cancelConfirmation.isOpen}
                 onClose={() => setCancelConfirmation(null)}
                 onConfirm={confirmCancelDelivery}
+            />
+
+            {/* Bulk Guide Setup Modal (Replaced DMSendModal) */}
+            <BulkGuideSetupModal
+                isOpen={isBulkDMModalOpen}
+                onClose={() => setIsBulkDMModalOpen(false)}
+                recipients={dmRecipients}
+                templates={templates}
+                onSend={handleBulkDMSend}
+                onSaveDraft={(data) => {
+                    console.log("Draft saved:", data);
+                    alert("임시저장되었습니다.");
+                    setIsBulkDMModalOpen(false);
+                }}
             />
         </div>
     );

@@ -106,6 +106,14 @@ export function Sidebar({ currentView, onChangeView, onBackToServiceSelector }: 
                         isActive={isActive('automation-groups')}
                         onClick={() => onChangeView('automation-groups')}
                     />
+                    <NavItem
+                        icon={Zap}
+                        label="반응 자동화 관리2"
+                        isActive={isActive('automation-groups-2')}
+                        onClick={() => onChangeView('automation-groups-2')}
+                        tag="NEW"
+                        tagColor="purple"
+                    />
 
 
                 </div>
@@ -191,7 +199,7 @@ interface LayoutProps {
 
 export function Layout({ children, currentView, onChangeView, onBackToServiceSelector }: LayoutProps) {
     return (
-        <div className="flex h-screen w-screen bg-[var(--ft-bg-secondary)]">
+        <div className="flex h-full w-full bg-[var(--ft-bg-secondary)]">
             <Sidebar
                 currentView={currentView}
                 onChangeView={onChangeView}

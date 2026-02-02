@@ -4,7 +4,9 @@ import { ServiceSwitcherBar } from "../design-system";
 import { ConnectedAccount } from "../shared";
 import { Dashboard } from "./pages/Dashboard";
 import { AutomationGroupList } from "./pages/AutomationGroupList";
+import AutomationGroupList2 from "./pages/AutomationGroupList2";
 import { AutomationGroupDetail } from "./pages/AutomationGroupDetail";
+import { AutomationGroupDetail2 } from "./pages/AutomationGroupDetail2";
 import { TemplateManagement } from "./pages/TemplateManagement";
 import { CampaignManagement } from "./pages/CampaignManagement";
 
@@ -747,6 +749,41 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
                     />
                 );
 
+            case 'automation-groups-2':
+                return (
+                    <AutomationGroupList2
+                        automationGroups={automationGroups}
+                        onNavigate={(view) => {
+                            // Redirect automation-group-detail to v2 version
+                            if (view.startsWith('automation-group-detail-')) {
+                                const id = parseInt(view.split('-').pop() || '0');
+                                setSelectedGroupId(id);
+                                setCurrentView('automation-group-detail-2');
+                            } else {
+                                handleNavigate(view);
+                            }
+                        }}
+                        onCreateGroup={handleCreateGroup}
+                    />
+                );
+
+            case 'automation-group-detail-2':
+                if (!selectedGroup) {
+                    return (
+                        <div className="p-8 text-center">
+                            <p className="text-[#707070]">그룹을 찾을 수 없습니다</p>
+                        </div>
+                    );
+                }
+                return (
+                    <AutomationGroupDetail2
+                        group={selectedGroup}
+                        template={selectedTemplate}
+                        onBack={() => setCurrentView('automation-groups-2')}
+                        onOpenTemplateManagement={() => setCurrentView(`template-management-${selectedGroup.id}`)}
+                    />
+                );
+
             case 'campaign':
                 return (
                     <CampaignManagement
@@ -957,7 +994,7 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
     };
 
     return (
-        <div className="flex flex-col h-screen w-screen overflow-hidden">
+        <div className="flex flex-col h-screen w-full overflow-hidden">
             <div className="flex-1 w-full overflow-hidden relative">
                 {renderLayout()}
             </div>

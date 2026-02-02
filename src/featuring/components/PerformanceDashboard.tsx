@@ -811,7 +811,7 @@ export function PerformanceDashboard({ influencerCount }: PerformanceDashboardPr
                     <div className="flex-1 p-5 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <div className="w-1 h-3 bg-blue-500 rounded-full"></div>
-                            <span className="text-sm text-[var(--ft-text-secondary)] font-medium">도달 인원</span>
+                            <span className="text-sm text-[var(--ft-text-secondary)] font-medium">수신 인원</span>
                         </div>
                         <p className="text-2xl font-bold text-[var(--ft-text-primary)]">
                             {formatNumber(totalReach)} <span className="text-base font-normal text-[var(--ft-text-disabled)]">명</span>
