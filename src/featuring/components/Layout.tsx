@@ -108,7 +108,7 @@ export function Sidebar({ currentView, onChangeView, onBackToServiceSelector }: 
                     />
                     <NavItem
                         icon={Zap}
-                        label="반응 자동화 관리2"
+                        label="UX Test"
                         isActive={isActive('automation-groups-2')}
                         onClick={() => onChangeView('automation-groups-2')}
                         tag="NEW"

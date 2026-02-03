@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from "react";
-import { Search, Plus, Settings, CheckCircle2, X as XIcon, Send, ChevronDown, ChevronUp, ExternalLink, AlertCircle, Clock, Link } from "lucide-react";
-import { CoreButton, CoreAvatar } from "../../design-system";
+import { Search, Plus, Settings, CheckCircle2, X as XIcon, Send, ChevronDown, ChevronUp, ExternalLink, AlertCircle, Clock, Link, Trash2 } from "lucide-react";
+import { CoreButton, CoreAvatar, CoreStatusBadge } from "../../design-system";
 import { CollaborationInfluencer, DMTemplate, InfluencerTemplateAssignment } from "../types";
 import { Badge } from "@/app/components/ui/badge";
-import { Input } from "@/app/components/ui/input";
 import { format } from "date-fns";
 import { TemplateDetailModal } from "./TemplateDetailModal";
 import { cn } from "@/app/components/ui/utils";
@@ -11,7 +10,9 @@ import { cn } from "@/app/components/ui/utils";
 interface CollaborationTableProps {
     influencers: CollaborationInfluencer[];
     templates: DMTemplate[];
-    selectedInfluencerId?: number; // For highlighting selected row
+    selectedInfluencerId?: number; // For highlighting selected row (Side Sheet mode) or general selection
+    expandedInfluencerId?: number | null; // For Expandable Row mode
+    onToggleExpand?: (id: number) => void; // For Expandable Row mode
     onOpenTemplateModal: () => void;
     onAddInfluencer?: () => void;
     onRowClick?: (influencer: CollaborationInfluencer) => void; // Side Sheet - single mode
@@ -22,13 +23,15 @@ interface CollaborationTableProps {
     onDeliverTemplate?: (influencerId: number, assignmentId: number) => void;
     onCancelDelivery?: (influencerId: number, assignmentId: number) => void;
     onAddTemplateToInfluencer?: (influencerId: number) => void;
-    onSelectionChange?: (selectedIds: number[]) => void; // For bulk mode sync
+    onSelectionChange?: (selectedIds: number[]) => void;
 }
 
 export function CollaborationTable({
     influencers,
     templates,
     selectedInfluencerId,
+    expandedInfluencerId,
+    onToggleExpand,
     onOpenTemplateModal,
     onAddInfluencer,
     onRowClick,
@@ -107,6 +110,54 @@ export function CollaborationTable({
         setSelectedInfluencerIds([]);
         onSelectionChange?.([]);
     };
+
+    const getDeliveryStatusBadge = (status: InfluencerTemplateAssignment['deliveryStatus'], failReason?: string) => {
+        switch (status) {
+            case 'pending':
+                return <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 font-normal"><Clock className="w-3 h-3 mr-1" />대기중</Badge>;
+            case 'delivered':
+                return <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 font-normal"><CheckCircle2 className="w-3 h-3 mr-1" />전달됨</Badge>;
+            case 'failed':
+                return (
+                    <div className="flex flex-col gap-1 items-start">
+                        <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 font-normal"><AlertCircle className="w-3 h-3 mr-1" />실패</Badge>
+                        {failReason && <span className="text-[10px] text-red-500">{failReason}</span>}
+                    </div>
+                );
+            case 'not_delivered':
+            default:
+                return <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200 font-normal">미전달</Badge>;
+        }
+    };
+
+    const getAutomationStatusBadge = (status: 'running' | 'stopped' | 'error' | 'none') => {
+        switch (status) {
+            case 'running':
+                return (
+                    <div className="flex items-center gap-1.5 text-green-600 text-xs font-medium">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                        작동중
+                    </div>
+                );
+            case 'stopped':
+                return (
+                    <div className="flex items-center gap-1.5 text-gray-500 text-xs font-medium">
+                        <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                        중단됨
+                    </div>
+                );
+            case 'error':
+                return (
+                    <div className="flex items-center gap-1.5 text-red-600 text-xs font-medium">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                        오류
+                    </div>
+                );
+            default:
+                return <span className="text-gray-400">-</span>;
+        }
+    };
+
 
     return (
         <div className="flex flex-col h-full bg-white text-sm">
@@ -199,7 +250,7 @@ export function CollaborationTable({
                 <div className="pl-1">#</div>
                 <div>인플루언서</div>
                 <div className="text-center">스튜디오 연결</div>
-                <div>적용된 자동화 가이드</div>
+                <div>템플릿 요약</div>
                 <div>전달 요약</div>
                 <div className="text-right">마지막 전달일</div>
                 <div />
@@ -209,17 +260,25 @@ export function CollaborationTable({
             <div className="flex-1 overflow-y-auto">
                 {filteredData.map((influencer) => {
                     const isSelected = selectedInfluencerIds.includes(influencer.influencerId);
+                    const isExpanded = expandedInfluencerId === influencer.influencerId;
                     const isRowHighlighted = selectedInfluencerId === influencer.influencerId;
 
                     return (
                         <div key={influencer.influencerId} className="flex flex-col border-b last:border-0 transition-colors">
-                            {/* Master Row - Updated Columns */}
+                            {/* Master Row */}
                             <div
                                 className={cn(
-                                    "grid grid-cols-[40px_1.8fr_100px_1fr_1.2fr_100px_40px] gap-2 px-6 py-3 items-center cursor-pointer",
-                                    isRowHighlighted ? "bg-blue-50 border-l-2 border-l-blue-500" : "hover:bg-gray-50"
+                                    "grid grid-cols-[40px_1.8fr_100px_1fr_1.2fr_100px_40px] gap-2 px-6 py-3 items-center cursor-pointer transition-colors",
+                                    (isExpanded || isRowHighlighted) ? "bg-[var(--ft-bg-base)]" : "hover:bg-gray-50",
+                                    isRowHighlighted && "border-l-2 border-l-blue-500 bg-blue-50/50"
                                 )}
-                                onClick={() => onRowClick?.(influencer)}
+                                onClick={() => {
+                                    if (onRowClick) {
+                                        onRowClick(influencer);
+                                    } else if (onToggleExpand) {
+                                        onToggleExpand(influencer.influencerId);
+                                    }
+                                }}
                             >
                                 <div className="pl-1" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                                     <input
@@ -259,48 +318,12 @@ export function CollaborationTable({
                                 </div>
 
                                 {/* Template Summary */}
-                                <div className="flex items-center gap-1.5 text-xs flex-wrap" onClick={(e) => e.stopPropagation()}>
-                                    {influencer.templateAssignments.length === 0 ? (
-                                        <span className="text-gray-400">템플릿 없음</span>
-                                    ) : (
-                                        <>
-                                            {influencer.templateAssignments.slice(0, 2).map((assignment) => (
-                                                <button
-                                                    key={assignment.id}
-                                                    className="flex items-center gap-1 px-2 py-1 rounded-md border border-gray-200 bg-white hover:bg-gray-50 text-[11px] font-medium text-gray-700 transition-colors shadow-sm max-w-[120px] truncate"
-                                                    onClick={() => onDeliveryClick?.(influencer, assignment)}
-                                                    title={assignment.templateName}
-                                                >
-                                                    <span className="truncate">{assignment.templateName}</span>
-                                                </button>
-                                            ))}
-                                            {influencer.templateAssignments.length > 2 && (
-                                                <span className="text-[11px] text-gray-500 font-medium px-1.5 py-1 bg-gray-100 rounded-md">
-                                                    +{influencer.templateAssignments.length - 2}개
-                                                </span>
-                                            )}
-                                        </>
-                                    )}
-                                    <button
-                                        className="p-1 hover:bg-blue-50 rounded text-blue-600 transition-colors"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onAddTemplateToInfluencer?.(influencer.influencerId);
-                                        }}
-                                        title="템플릿 추가"
-                                    >
-                                        <Plus className="w-3 h-3" />
-                                    </button>
+                                <div className="flex items-center gap-2 text-xs font-medium text-blue-600">
+                                    <span>{influencer.templateAssignments.length}개 적용</span>
                                 </div>
 
                                 {/* Delivery Summary */}
                                 <div className="flex items-center gap-2 text-xs">
-                                    {(influencer.deliverySummary.draft || 0) > 0 && (
-                                        <>
-                                            <span className="text-orange-600 font-medium whitespace-nowrap">임시저장 {influencer.deliverySummary.draft}</span>
-                                            <span className="text-gray-300">|</span>
-                                        </>
-                                    )}
                                     <span className="text-green-600 font-medium whitespace-nowrap">전달 {influencer.deliverySummary.delivered}</span>
                                     <span className="text-gray-300">|</span>
                                     <span className="text-amber-600 font-medium whitespace-nowrap">대기 {influencer.deliverySummary.pending}</span>
@@ -313,14 +336,117 @@ export function CollaborationTable({
                                     {influencer.lastDeliveredAt ? format(new Date(influencer.lastDeliveredAt), 'yyyy.MM.dd') : '-'}
                                 </div>
 
-                                {/* Arrow Icon (instead of expand) */}
+                                {/* Chevron Icon */}
                                 <div className="flex justify-center text-gray-400">
                                     <ChevronDown size={16} className={cn(
-                                        "transform -rotate-90 transition-transform",
-                                        isRowHighlighted && "text-blue-500"
+                                        "transition-transform",
+                                        onRowClick ? "-rotate-90" : (isExpanded && "transform rotate-180")
                                     )} />
                                 </div>
                             </div>
+
+                            {/* Detail Panel (Expanded) */}
+                            {isExpanded && (
+                                <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 animate-in slide-in-from-top-2 duration-200">
+                                    {/* Inner Table */}
+                                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+                                        <div className="grid grid-cols-[1.5fr_100px_100px_2fr_100px_80px] gap-4 px-4 py-2.5 bg-gray-50/50 border-b border-gray-100 text-xs font-semibold text-gray-500">
+                                            <div>템플릿</div>
+                                            <div>전달 상태</div>
+                                            <div>자동화 상태</div>
+                                            <div>버튼 URL</div>
+                                            <div>전달일</div>
+                                            <div className="text-center">액션</div>
+                                        </div>
+
+                                        {influencer.templateAssignments.length === 0 ? (
+                                            <div className="p-8 text-center text-gray-400 text-sm">
+                                                연결된 템플릿이 없습니다.
+                                            </div>
+                                        ) : (
+                                            influencer.templateAssignments.map((assignment) => (
+                                                <div key={assignment.id} className="grid grid-cols-[1.5fr_100px_100px_2fr_100px_80px] gap-4 px-4 py-3 items-center border-b last:border-0 border-gray-100 text-sm hover:bg-gray-50/30 transition-colors">
+                                                    {/* Template Name */}
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            className="font-medium text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1.5 truncate"
+                                                            onClick={() => setDetailAssignment(assignment)}
+                                                        >
+                                                            {assignment.templateName}
+                                                            <ExternalLink className="w-3 h-3" />
+                                                        </button>
+                                                        <Badge variant="secondary" className="text-[10px] h-4 px-1 bg-gray-100">v{assignment.snapshotVersion}</Badge>
+                                                    </div>
+
+                                                    {/* Delivery Status */}
+                                                    <div>
+                                                        {getDeliveryStatusBadge(assignment.deliveryStatus, assignment.failReason)}
+                                                    </div>
+
+                                                    {/* Automation Status */}
+                                                    <div>
+                                                        {getAutomationStatusBadge(influencer.automationStatus)}
+                                                    </div>
+
+                                                    {/* Button URLs (Variables) */}
+                                                    <div className="flex flex-col gap-1.5">
+                                                        {Object.entries(assignment.variables).map(([key, value]) => {
+                                                            const variableName = key === 'product_url' ? '상품 보기' : key === 'discount_url' ? '할인 받기' : '브랜드 홈'; // Mapping for demo
+                                                            return (
+                                                                <div key={key} className="flex items-center gap-2">
+                                                                    <Badge variant="outline" className="shrink-0 text-[10px] w-16 justify-center bg-gray-50 text-gray-500">{variableName}</Badge>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={value}
+                                                                        onChange={(e) => onUpdateVariable?.(influencer.influencerId, assignment.id, key, e.target.value)}
+                                                                        className="w-full h-7 px-2 text-xs bg-gray-50 border border-gray-200 rounded focus:bg-white focus:border-blue-500 focus:outline-none transition-all placeholder:text-gray-300"
+                                                                        placeholder="https://..."
+                                                                    />
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+
+                                                    {/* Delivery Date */}
+                                                    <div className="text-gray-500 text-xs">
+                                                        {assignment.deliveredAt ? format(new Date(assignment.deliveredAt), 'yyyy-MM-dd') : '-'}
+                                                    </div>
+
+                                                    {/* Action */}
+                                                    <div className="flex justify-center">
+                                                        {assignment.deliveryStatus === 'delivered' || assignment.deliveryStatus === 'pending' ? (
+                                                            <button
+                                                                onClick={() => onCancelDelivery?.(influencer.influencerId, assignment.id)}
+                                                                className="px-2.5 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded transition-colors"
+                                                            >
+                                                                전달취소
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => onDeliverTemplate?.(influencer.influencerId, assignment.id)}
+                                                                className="px-2.5 py-1.5 text-xs font-medium text-white bg-[var(--ft-color-primary-500)] hover:bg-[var(--ft-color-primary-600)] rounded shadow-sm transition-colors"
+                                                            >
+                                                                전달하기
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+
+                                    {/* Add Template Action */}
+                                    <div className="mt-3">
+                                        <button
+                                            onClick={() => onAddTemplateToInfluencer?.(influencer.influencerId)}
+                                            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                            전달할 템플릿 추가
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     );
                 })}

@@ -9,6 +9,7 @@ import { AutomationGroupDetail } from "./pages/AutomationGroupDetail";
 import { AutomationGroupDetail2 } from "./pages/AutomationGroupDetail2";
 import { TemplateManagement } from "./pages/TemplateManagement";
 import { CampaignManagement } from "./pages/CampaignManagement";
+import { CreateAutomationModal } from "./components/CreateAutomationModal";
 
 import { CampaignDetail } from "./pages/CampaignDetail";
 import { InfluencerManagement } from "./pages/InfluencerManagement";
@@ -453,6 +454,7 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
     const [reactionAutomationContext, setReactionAutomationContext] = useState<{ context: 'global' | 'campaign'; campaignId?: number; campaignName?: string } | null>(null);
     const [reactionAutomationMode, setReactionAutomationMode] = useState<'view' | 'edit'>('view');
     const [campaignAutomations, setCampaignAutomations] = useState<Record<number, AutomationGroupSummary[]>>({});
+    const [isCreateAutomationModalOpen, setIsCreateAutomationModalOpen] = useState(false);
 
     // Handle adding automation from campaign
     const handleAddCampaignAutomation = (campaignId: number, automation: AutomationGroupSummary) => {
@@ -685,8 +687,41 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
 
     // Handle create new group
     const handleCreateGroup = () => {
-        // TODO: Open create group modal
-        console.log('Create new group');
+        setIsCreateAutomationModalOpen(true);
+    };
+
+    // Handle create new automation from modal
+    const handleCreateNewAutomation = (data: {
+        name: string;
+        description?: string;
+        linkedCampaignId?: number;
+        productBrand?: string;
+    }) => {
+        const newId = Date.now();
+        const linkedCampaign = data.linkedCampaignId
+            ? campaigns.find(c => c.id === data.linkedCampaignId)
+            : null;
+
+        const newGroup: AutomationGroup = {
+            id: newId,
+            name: data.name,
+            description: data.description,
+            status: 'pending',
+            influencerCount: linkedCampaign ? campaignInfluencers.length : 0,
+            templateStatus: 'none',
+            lastModified: new Date().toISOString().split('T')[0],
+            createdAt: new Date().toISOString().split('T')[0],
+            linkedCampaignId: data.linkedCampaignId,
+            campaignName: linkedCampaign?.name || '단독',
+            productBrand: data.productBrand
+        };
+
+        setAutomationGroups(prev => [newGroup, ...prev]);
+        setIsCreateAutomationModalOpen(false);
+
+        // Navigate to the new automation's detail page
+        setSelectedGroupId(newId);
+        setCurrentView('automation-group-detail');
     };
 
     // Handle open template management
@@ -1004,6 +1039,15 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
                     onSwitchService={onSwitchService}
                 />
             )}
+
+            {/* Create Automation Modal */}
+            <CreateAutomationModal
+                isOpen={isCreateAutomationModalOpen}
+                onClose={() => setIsCreateAutomationModalOpen(false)}
+                campaigns={campaigns}
+                existingNames={automationGroups.map(g => g.name)}
+                onCreateAutomation={handleCreateNewAutomation}
+            />
         </div>
     );
 }
