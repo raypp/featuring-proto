@@ -10,6 +10,7 @@ import { DeliveryConfirmationModal } from "../components/DeliveryConfirmationMod
 import { CancelDeliveryModal } from "../components/CancelDeliveryModal";
 import { CollaborationSideSheet, SideSheetMode, DraftGuideData } from "../components/CollaborationSideSheet";
 import { BulkGuideSetupModal } from "../components/BulkGuideSetupModal";
+import { AutomationFlowWizardModal, WizardResult } from "../components/AutomationFlowWizardModal";
 
 // ... (other imports)
 
@@ -27,6 +28,8 @@ interface AutomationGroupDetailProps {
     onOpenTemplateManagement: () => void;
     onDeliverTemplate?: (influencerIds: number[]) => void;
     onAddInfluencer?: () => void;
+    /** When true, uses "자동화 가이드 전달하기" as empty state CTA instead of "인플루언서 추가" */
+    useDeliveryStepMode?: boolean;
 }
 
 
@@ -109,12 +112,14 @@ export function AutomationGroupDetail2({
     onBack,
     onOpenTemplateManagement,
     onDeliverTemplate,
-    onAddInfluencer
+    onAddInfluencer,
+    useDeliveryStepMode = false
 }: AutomationGroupDetailProps) {
     const [activeTab, setActiveTab] = useState<TabType>('list');
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [isAddInfluencerModalOpen, setIsAddInfluencerModalOpen] = useState(false);
     const [isBulkDMModalOpen, setIsBulkDMModalOpen] = useState(false);
+    const [isWizardModalOpen, setIsWizardModalOpen] = useState(false);
 
     // Expanded Row State
     const [expandedInfluencerId, setExpandedInfluencerId] = useState<number | null>(null);
@@ -164,7 +169,8 @@ export function AutomationGroupDetail2({
     ]);
 
     // Influencers State (For Table)
-    const mockInfluencers = useMemo(() => generateMockInfluencers(templates), [templates]); // Re-generate if templates change
+    // For newly created groups (influencerCount === 0), start with empty list
+    const mockInfluencers = useMemo(() => group.influencerCount > 0 ? generateMockInfluencers(templates) : [], [templates, group.influencerCount]);
     const [collaborationInfluencers, setCollaborationInfluencers] = useState<CollaborationInfluencer[]>(mockInfluencers);
 
     // Draft Guides State (key: influencerId)
@@ -377,9 +383,19 @@ export function AutomationGroupDetail2({
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-[var(--ft-text-secondary)]">
-                        <Users className="w-4 h-4" />
-                        <span>참여 인플루언서 <strong className="text-[var(--ft-text-primary)]">{collaborationInfluencers.length}명</strong></span>
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 text-sm text-[var(--ft-text-secondary)]">
+                            <Users className="w-4 h-4" />
+                            <span>참여 인플루언서 <strong className="text-[var(--ft-text-primary)]">{collaborationInfluencers.length}명</strong></span>
+                        </div>
+                        <CoreButton
+                            variant="primary"
+                            size="sm"
+                            onClick={() => setIsWizardModalOpen(true)}
+                            leftIcon={<Send className="w-4 h-4" />}
+                        >
+                            자동화 가이드 전달하기
+                        </CoreButton>
                     </div>
                 </div>
 
@@ -458,6 +474,11 @@ export function AutomationGroupDetail2({
                                 onSelectionChange={(ids) => {
                                     setSelectedInfluencerIds(ids);
                                 }}
+                                {...(useDeliveryStepMode && {
+                                    emptyStateCtaText: "자동화 가이드 전달하기",
+                                    emptyStateCtaIcon: <Send className="w-4 h-4" />,
+                                    onEmptyStateCta: () => setIsWizardModalOpen(true)
+                                })}
                             />
                         </div>
                     </div>
@@ -465,7 +486,10 @@ export function AutomationGroupDetail2({
 
                 {activeTab === 'performance' && (
                     <div className="h-full bg-white overflow-auto">
-                        <PerformanceDashboard influencerCount={collaborationInfluencers.length} />
+                        <PerformanceDashboard
+                            influencerCount={collaborationInfluencers.length}
+                            isEmpty={collaborationInfluencers.length === 0}
+                        />
                     </div>
                 )}
             </div>
@@ -511,6 +535,54 @@ export function AutomationGroupDetail2({
                     console.log("Draft saved:", data);
                     alert("임시저장되었습니다.");
                     setIsBulkDMModalOpen(false);
+                }}
+            />
+
+            {/* Automation Flow Wizard Modal */}
+            <AutomationFlowWizardModal
+                isOpen={isWizardModalOpen}
+                onClose={() => setIsWizardModalOpen(false)}
+                onComplete={(result: WizardResult) => {
+                    // Add selected influencers to the list
+                    const newInfluencers: CollaborationInfluencer[] = result.influencers.map((inf, idx) => ({
+                        id: Date.now() + idx,
+                        influencerId: inf.id,
+                        username: inf.username,
+                        displayName: inf.displayName,
+                        profileImage: inf.profileImage,
+                        isConnected: true,
+                        templateCount: 1,
+                        templateNames: ['자동화 가이드'],
+                        deliverySummary: {
+                            draft: 0,
+                            delivered: 1,
+                            pending: 0,
+                            failed: 0,
+                            notDelivered: 0,
+                        },
+                        automationStatus: 'running',
+                        lastDeliveredAt: new Date().toISOString(),
+                        templateAssignments: [{
+                            id: Date.now() + idx + 1000,
+                            influencerId: inf.id,
+                            templateId: 1,
+                            templateName: '자동화 가이드',
+                            snapshotVersion: 1,
+                            deliveryStatus: 'delivered',
+                            deliveredAt: new Date().toISOString(),
+                            variables: {},
+                            snapshotContent: {
+                                dmGuide: result.dmMessage,
+                                ctaLinks: result.ctaLinks,
+                                triggerKeywords: result.triggerKeywords,
+                            },
+                            createdAt: new Date().toISOString(),
+                            lastModifiedAt: new Date().toISOString(),
+                        }],
+                    }));
+
+                    setCollaborationInfluencers(prev => [...prev, ...newInfluencers]);
+                    alert(`${result.influencers.length}명에게 자동화 가이드가 성공적으로 전달되었습니다.`);
                 }}
             />
         </div>

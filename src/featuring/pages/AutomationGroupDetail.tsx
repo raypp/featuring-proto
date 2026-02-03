@@ -168,7 +168,10 @@ export function AutomationGroupDetail({
     ]);
 
     // Influencers State (For Table)
-    const mockInfluencers = useMemo(() => generateMockInfluencers(templates), [templates]); // Re-generate if templates change
+    const mockInfluencers = useMemo(() => {
+        if (group.influencerCount === 0) return [];
+        return generateMockInfluencers(templates);
+    }, [templates, group.influencerCount]); // Re-generate if templates change
     const [collaborationInfluencers, setCollaborationInfluencers] = useState<CollaborationInfluencer[]>(mockInfluencers);
 
     // Draft Guides State (key: influencerId)
@@ -470,33 +473,35 @@ export function AutomationGroupDetail({
                             />
                         </div>
 
-                        {/* Right: Side Sheet (1.1x wider: ~480px) */}
-                        <div className="w-[480px] shrink-0 border-l border-gray-100 bg-gray-50 overflow-hidden">
-                            <CollaborationSideSheet
-                                mode={sideSheetMode}
-                                selectedInfluencer={selectedInfluencer || undefined}
-                                selectedInfluencers={bulkSelectedInfluencers}
-                                selectedDelivery={selectedDelivery || undefined}
-                                templates={templates}
-                                draftData={selectedInfluencer ? getDraftForInfluencer(selectedInfluencer.influencerId) : undefined}
-                                onClose={() => {
-                                    setSelectedInfluencer(null);
-                                    setSelectedDelivery(null);
-                                }}
-                                onBackToInfluencer={() => {
-                                    setSelectedDelivery(null);
-                                }}
-                                onDeliverTemplate={handleDeliverSingle}
-                                onCancelDelivery={handleCancelDelivery}
-                                onUpdateVariable={handleUpdateVariable}
-                                onBulkDeliver={(ids) => alert(`Bulk deliver to ${ids.length} influencers`)}
-                                onViewDeliveryDetail={(influencer, assignment) => {
-                                    setSelectedDelivery({ influencer, assignment });
-                                }}
-                                onAddTemplateToInfluencer={handleAddTemplateToInfluencer}
-                                onSaveAsDraft={handleSaveAsDraft}
-                            />
-                        </div>
+                        {/* Right: Side Sheet (1.1x wider: ~480px) - Only show if there are influencers */}
+                        {collaborationInfluencers.length > 0 && (
+                            <div className="w-[480px] shrink-0 border-l border-gray-100 bg-gray-50 overflow-hidden">
+                                <CollaborationSideSheet
+                                    mode={sideSheetMode}
+                                    selectedInfluencer={selectedInfluencer || undefined}
+                                    selectedInfluencers={bulkSelectedInfluencers}
+                                    selectedDelivery={selectedDelivery || undefined}
+                                    templates={templates}
+                                    draftData={selectedInfluencer ? getDraftForInfluencer(selectedInfluencer.influencerId) : undefined}
+                                    onClose={() => {
+                                        setSelectedInfluencer(null);
+                                        setSelectedDelivery(null);
+                                    }}
+                                    onBackToInfluencer={() => {
+                                        setSelectedDelivery(null);
+                                    }}
+                                    onDeliverTemplate={handleDeliverSingle}
+                                    onCancelDelivery={handleCancelDelivery}
+                                    onUpdateVariable={handleUpdateVariable}
+                                    onBulkDeliver={(ids) => alert(`Bulk deliver to ${ids.length} influencers`)}
+                                    onViewDeliveryDetail={(influencer, assignment) => {
+                                        setSelectedDelivery({ influencer, assignment });
+                                    }}
+                                    onAddTemplateToInfluencer={handleAddTemplateToInfluencer}
+                                    onSaveAsDraft={handleSaveAsDraft}
+                                />
+                            </div>
+                        )}
                     </div>
                 )}
 

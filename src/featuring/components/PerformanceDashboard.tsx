@@ -16,6 +16,8 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 
 interface PerformanceDashboardProps {
     influencerCount: number;
+    /** When true, shows empty state UI for newly created automations */
+    isEmpty?: boolean;
 }
 
 // Extended Content Performance interface with new columns
@@ -536,10 +538,56 @@ const mockContentData: ContentPerformance[] = [
     }
 ];
 
-export function PerformanceDashboard({ influencerCount }: PerformanceDashboardProps) {
+export function PerformanceDashboard({ influencerCount, isEmpty = false }: PerformanceDashboardProps) {
     const [dateRange, setDateRange] = useState("7d");
     const [expandedId, setExpandedId] = useState<number | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
+
+    // If empty, show empty state UI
+    if (isEmpty) {
+        return (
+            <div className="h-full flex flex-col items-center justify-center bg-[var(--ft-bg-base)] p-8">
+                <div className="text-center max-w-md">
+                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <TrendingUp className="w-10 h-10 text-gray-300" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-[var(--ft-text-primary)] mb-2">아직 성과 데이터가 없습니다</h3>
+                    <p className="text-sm text-[var(--ft-text-secondary)] mb-6">
+                        자동화 가이드를 인플루언서에게 전달하면<br />이곳에서 성과를 확인할 수 있습니다.
+                    </p>
+                    <div className="flex flex-col gap-3">
+                        <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-[var(--ft-border-primary)]">
+                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                <span className="text-blue-600 text-sm font-bold">1</span>
+                            </div>
+                            <div className="text-left">
+                                <p className="text-sm font-medium text-[var(--ft-text-primary)]">자동화 가이드 전달</p>
+                                <p className="text-xs text-[var(--ft-text-disabled)]">인플루언서에게 가이드를 전달하세요</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-[var(--ft-border-primary)]">
+                            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                                <span className="text-purple-600 text-sm font-bold">2</span>
+                            </div>
+                            <div className="text-left">
+                                <p className="text-sm font-medium text-[var(--ft-text-primary)]">인플루언서 활동</p>
+                                <p className="text-xs text-[var(--ft-text-disabled)]">콘텐츠 업로드 및 DM 발송이 시작됩니다</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-[var(--ft-border-primary)]">
+                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                                <span className="text-green-600 text-sm font-bold">3</span>
+                            </div>
+                            <div className="text-left">
+                                <p className="text-sm font-medium text-[var(--ft-text-primary)]">성과 확인</p>
+                                <p className="text-xs text-[var(--ft-text-disabled)]">실시간으로 성과를 모니터링하세요</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     // KPI Calculations
     const totalReach = mockDailyData.reduce((sum, d) => sum + d.reach, 0);

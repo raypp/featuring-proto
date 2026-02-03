@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Search, Plus, Settings, CheckCircle2, X as XIcon, Send, ChevronDown, ChevronUp, ExternalLink, AlertCircle, Clock, Link, Trash2 } from "lucide-react";
+import { Search, Plus, Settings, CheckCircle2, X as XIcon, Send, ChevronDown, ChevronUp, ExternalLink, AlertCircle, Clock, Link, Trash2, Users } from "lucide-react";
 import { CoreButton, CoreAvatar, CoreStatusBadge } from "../../design-system";
 import { CollaborationInfluencer, DMTemplate, InfluencerTemplateAssignment } from "../types";
 import { Badge } from "@/app/components/ui/badge";
@@ -24,6 +24,10 @@ interface CollaborationTableProps {
     onCancelDelivery?: (influencerId: number, assignmentId: number) => void;
     onAddTemplateToInfluencer?: (influencerId: number) => void;
     onSelectionChange?: (selectedIds: number[]) => void;
+    // Custom empty state props
+    emptyStateCtaText?: string;
+    emptyStateCtaIcon?: React.ReactNode;
+    onEmptyStateCta?: () => void;
 }
 
 export function CollaborationTable({
@@ -42,7 +46,10 @@ export function CollaborationTable({
     onDeliverTemplate,
     onCancelDelivery,
     onAddTemplateToInfluencer,
-    onSelectionChange
+    onSelectionChange,
+    emptyStateCtaText,
+    emptyStateCtaIcon,
+    onEmptyStateCta
 }: CollaborationTableProps) {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedInfluencerIds, setSelectedInfluencerIds] = useState<number[]>([]);
@@ -258,7 +265,28 @@ export function CollaborationTable({
 
             {/* Table Body */}
             <div className="flex-1 overflow-y-auto">
-                {filteredData.map((influencer) => {
+                {influencers.length === 0 && (
+                    <div className="flex flex-col items-center justify-center h-full text-center p-8 gap-4 min-h-[300px]">
+                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center">
+                            <Users className="w-8 h-8 text-gray-300" />
+                        </div>
+                        <div>
+                            <p className="text-gray-900 font-medium mb-1 text-base">추가된 인플루언서가 없습니다</p>
+                            <p className="text-gray-500 text-sm">인플루언서를 추가하여 자동화 메시지를 발송해보세요.</p>
+                        </div>
+                        <div className="mt-2">
+                            <CoreButton
+                                variant="primary"
+                                size="md"
+                                onClick={onEmptyStateCta || onAddInfluencer}
+                                leftIcon={emptyStateCtaIcon || <Plus className="w-4 h-4" />}
+                            >
+                                {emptyStateCtaText || "인플루언서 추가하기"}
+                            </CoreButton>
+                        </div>
+                    </div>
+                )}
+                {influencers.length > 0 && filteredData.map((influencer) => {
                     const isSelected = selectedInfluencerIds.includes(influencer.influencerId);
                     const isExpanded = expandedInfluencerId === influencer.influencerId;
                     const isRowHighlighted = selectedInfluencerId === influencer.influencerId;

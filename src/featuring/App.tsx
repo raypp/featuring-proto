@@ -10,7 +10,7 @@ import { AutomationGroupDetail2 } from "./pages/AutomationGroupDetail2";
 import { TemplateManagement } from "./pages/TemplateManagement";
 import { CampaignManagement } from "./pages/CampaignManagement";
 import { CreateAutomationModal } from "./components/CreateAutomationModal";
-
+import { DeleteConfirmModal } from "./components/DeleteConfirmModal";
 import { CampaignDetail } from "./pages/CampaignDetail";
 import { InfluencerManagement } from "./pages/InfluencerManagement";
 import { InfluencerGroupDetail } from "./pages/InfluencerGroupDetail";
@@ -28,8 +28,12 @@ const MOCK_AUTOMATION_GROUPS: AutomationGroup[] = [
         lastModified: "2026-01-14",
         createdAt: "2026-01-10",
         linkedCampaignId: 1,
-        campaignName: "26.03 다이슨 에어랩 캠페인", // Mock link
-        productBrand: "햇반/CJ제일제당"
+        campaignName: "26.03 다이슨 에어랩 캠페인",
+        productBrand: "햇반/CJ제일제당",
+        manager: "김피처",
+        startDate: "2026-01-10",
+        endDate: "2026-02-28",
+        createdBy: "박운영"
     },
     {
         id: 2,
@@ -41,7 +45,11 @@ const MOCK_AUTOMATION_GROUPS: AutomationGroup[] = [
         lastModified: "2024-03-14",
         createdAt: "2024-02-15",
         campaignName: "단독",
-        productBrand: "미녀스/런칭"
+        productBrand: "미녀스/런칭",
+        manager: "이담당",
+        startDate: "2024-03-01",
+        endDate: "2024-04-30",
+        createdBy: "최기획"
     },
     {
         id: 3,
@@ -53,7 +61,11 @@ const MOCK_AUTOMATION_GROUPS: AutomationGroup[] = [
         lastModified: "2024-03-10",
         createdAt: "2024-03-01",
         campaignName: "단독",
-        productBrand: "다이슨/에어랩"
+        productBrand: "다이슨/에어랩",
+        manager: "정마케터",
+        startDate: "2024-02-20",
+        endDate: "2024-03-10",
+        createdBy: "박운영"
     },
     {
         id: 4,
@@ -65,7 +77,11 @@ const MOCK_AUTOMATION_GROUPS: AutomationGroup[] = [
         lastModified: "2024-03-08",
         createdAt: "2024-03-05",
         campaignName: "25.10 상수 팝업",
-        productBrand: "FIG/팝업"
+        productBrand: "FIG/팝업",
+        manager: "김피처",
+        startDate: "2024-03-05",
+        endDate: "2024-03-31",
+        createdBy: "김피처"
     }
 ];
 
@@ -455,6 +471,8 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
     const [reactionAutomationMode, setReactionAutomationMode] = useState<'view' | 'edit'>('view');
     const [campaignAutomations, setCampaignAutomations] = useState<Record<number, AutomationGroupSummary[]>>({});
     const [isCreateAutomationModalOpen, setIsCreateAutomationModalOpen] = useState(false);
+    const [editingAutomation, setEditingAutomation] = useState<AutomationGroup | null>(null);
+    const [deletingAutomation, setDeletingAutomation] = useState<AutomationGroup | null>(null);
 
     // Handle adding automation from campaign
     const handleAddCampaignAutomation = (campaignId: number, automation: AutomationGroupSummary) => {
@@ -724,6 +742,45 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
         setCurrentView('automation-group-detail');
     };
 
+    // Handle edit automation
+    const handleEditAutomation = (id: number, data: {
+        name: string;
+        description?: string;
+        linkedCampaignId?: number;
+        productBrand?: string;
+        manager?: string;
+        startDate?: string;
+        endDate?: string;
+    }) => {
+        const linkedCampaign = data.linkedCampaignId
+            ? campaigns.find(c => c.id === data.linkedCampaignId)
+            : null;
+
+        setAutomationGroups(prev => prev.map(group =>
+            group.id === id
+                ? {
+                    ...group,
+                    name: data.name,
+                    description: data.description,
+                    linkedCampaignId: data.linkedCampaignId,
+                    campaignName: linkedCampaign?.name || '단독',
+                    productBrand: data.productBrand,
+                    manager: data.manager,
+                    startDate: data.startDate,
+                    endDate: data.endDate,
+                    lastModified: new Date().toISOString().split('T')[0]
+                }
+                : group
+        ));
+        setEditingAutomation(null);
+    };
+
+    // Handle delete automation
+    const handleDeleteAutomation = (id: number) => {
+        setAutomationGroups(prev => prev.filter(group => group.id !== id));
+        setDeletingAutomation(null);
+    };
+
     // Handle open template management
     const handleOpenTemplateManagement = () => {
         setCurrentView('template-management');
@@ -799,6 +856,8 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
                             }
                         }}
                         onCreateGroup={handleCreateGroup}
+                        onEditGroup={(group) => setEditingAutomation(group)}
+                        onDeleteGroup={(group) => setDeletingAutomation(group)}
                     />
                 );
 
@@ -816,6 +875,43 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
                         template={selectedTemplate}
                         onBack={() => setCurrentView('automation-groups-2')}
                         onOpenTemplateManagement={() => setCurrentView(`template-management-${selectedGroup.id}`)}
+                    />
+                );
+
+            case 'delivery-step-test':
+                return (
+                    <AutomationGroupList2
+                        automationGroups={automationGroups}
+                        onNavigate={(view: string) => {
+                            if (view.startsWith('automation-group-detail-')) {
+                                const id = parseInt(view.split('-').pop() || '0');
+                                setSelectedGroupId(id);
+                                setCurrentView('delivery-step-detail');
+                            } else {
+                                handleNavigate(view);
+                            }
+                        }}
+                        onCreateGroup={handleCreateGroup}
+                        onEditGroup={(group) => setEditingAutomation(group)}
+                        onDeleteGroup={(group) => setDeletingAutomation(group)}
+                    />
+                );
+
+            case 'delivery-step-detail':
+                if (!selectedGroup) {
+                    return (
+                        <div className="p-8 text-center">
+                            <p className="text-[#707070]">그룹을 찾을 수 없습니다</p>
+                        </div>
+                    );
+                }
+                return (
+                    <AutomationGroupDetail2
+                        group={selectedGroup}
+                        template={selectedTemplate}
+                        onBack={() => setCurrentView('delivery-step-test')}
+                        onOpenTemplateManagement={() => setCurrentView(`template-management-${selectedGroup.id}`)}
+                        useDeliveryStepMode={true}
                     />
                 );
 
@@ -1047,6 +1143,25 @@ export default function FeaturingApp({ onBackToServiceSelector, onSwitchService,
                 campaigns={campaigns}
                 existingNames={automationGroups.map(g => g.name)}
                 onCreateAutomation={handleCreateNewAutomation}
+            />
+
+            {/* Edit Automation Modal */}
+            <CreateAutomationModal
+                isOpen={editingAutomation !== null}
+                onClose={() => setEditingAutomation(null)}
+                campaigns={campaigns}
+                existingNames={automationGroups.map(g => g.name)}
+                mode="edit"
+                initialData={editingAutomation}
+                onEditAutomation={handleEditAutomation}
+            />
+
+            {/* Delete Confirm Modal */}
+            <DeleteConfirmModal
+                isOpen={deletingAutomation !== null}
+                onClose={() => setDeletingAutomation(null)}
+                onConfirm={() => deletingAutomation && handleDeleteAutomation(deletingAutomation.id)}
+                itemName={deletingAutomation?.name}
             />
         </div>
     );

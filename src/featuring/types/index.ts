@@ -13,6 +13,10 @@ export interface AutomationGroup {
     linkedCampaignId?: number;  // Links to Campaign.id
     campaignName?: string;      // Display name for table
     productBrand?: string;      // Product/Brand info
+    manager?: string;           // 담당자
+    startDate?: string;         // 시작일
+    endDate?: string;           // 종료일
+    createdBy?: string;         // 생성자
 }
 
 // CTA 링크 (변수 지원)

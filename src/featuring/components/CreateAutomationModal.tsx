@@ -1,18 +1,32 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { X, Zap, ChevronDown } from "lucide-react";
 import { CoreButton, CoreModal } from "../../design-system";
-import { Campaign } from "../types";
+import { Campaign, AutomationGroup } from "../types";
 
 interface CreateAutomationModalProps {
     isOpen: boolean;
     onClose: () => void;
     campaigns: Campaign[];
     existingNames: string[];
-    onCreateAutomation: (data: {
+    mode?: 'create' | 'edit';
+    initialData?: AutomationGroup | null;
+    onCreateAutomation?: (data: {
         name: string;
         description?: string;
         linkedCampaignId?: number;
         productBrand?: string;
+        manager?: string;
+        startDate?: string;
+        endDate?: string;
+    }) => void;
+    onEditAutomation?: (id: number, data: {
+        name: string;
+        description?: string;
+        linkedCampaignId?: number;
+        productBrand?: string;
+        manager?: string;
+        startDate?: string;
+        endDate?: string;
     }) => void;
 }
 
@@ -21,22 +35,57 @@ export function CreateAutomationModal({
     onClose,
     campaigns,
     existingNames,
-    onCreateAutomation
+    mode = 'create',
+    initialData,
+    onCreateAutomation,
+    onEditAutomation
 }: CreateAutomationModalProps) {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [linkedCampaignId, setLinkedCampaignId] = useState<number | null>(null);
     const [productBrand, setProductBrand] = useState("");
+    const [manager, setManager] = useState("");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
     const [showCampaignDropdown, setShowCampaignDropdown] = useState(false);
 
-    // Validation
+    // Initialize form with existing data when editing
+    useEffect(() => {
+        if (mode === 'edit' && initialData) {
+            setName(initialData.name || "");
+            setDescription(initialData.description || "");
+            setLinkedCampaignId(initialData.linkedCampaignId || null);
+            setProductBrand(initialData.productBrand || "");
+            setManager(initialData.manager || "");
+            setStartDate(initialData.startDate || "");
+            setEndDate(initialData.endDate || "");
+        } else if (mode === 'create') {
+            resetForm();
+        }
+    }, [mode, initialData, isOpen]);
+
+    const resetForm = () => {
+        setName("");
+        setDescription("");
+        setLinkedCampaignId(null);
+        setProductBrand("");
+        setManager("");
+        setStartDate("");
+        setEndDate("");
+        setShowCampaignDropdown(false);
+    };
+
+    // Validation - exclude current name when editing
     const nameError = useMemo(() => {
-        if (!name.trim()) return null; // Don't show error for empty input
-        if (existingNames.some(n => n.toLowerCase() === name.trim().toLowerCase())) {
+        if (!name.trim()) return null;
+        const namesToCheck = mode === 'edit' && initialData
+            ? existingNames.filter(n => n.toLowerCase() !== initialData.name.toLowerCase())
+            : existingNames;
+        if (namesToCheck.some(n => n.toLowerCase() === name.trim().toLowerCase())) {
             return "이미 존재하는 자동화 이름입니다";
         }
         return null;
-    }, [name, existingNames]);
+    }, [name, existingNames, mode, initialData]);
 
     const isValid = name.trim().length > 0 && !nameError;
 
@@ -47,24 +96,29 @@ export function CreateAutomationModal({
 
     // Handle close
     const handleClose = () => {
-        setName("");
-        setDescription("");
-        setLinkedCampaignId(null);
-        setProductBrand("");
-        setShowCampaignDropdown(false);
+        resetForm();
         onClose();
     };
 
-    // Handle create
-    const handleCreate = () => {
+    // Handle submit
+    const handleSubmit = () => {
         if (!isValid) return;
 
-        onCreateAutomation({
+        const formData = {
             name: name.trim(),
             description: description.trim() || undefined,
             linkedCampaignId: linkedCampaignId || undefined,
-            productBrand: productBrand.trim() || undefined
-        });
+            productBrand: productBrand.trim() || undefined,
+            manager: manager.trim() || undefined,
+            startDate: startDate || undefined,
+            endDate: endDate || undefined
+        };
+
+        if (mode === 'edit' && initialData && onEditAutomation) {
+            onEditAutomation(initialData.id, formData);
+        } else if (onCreateAutomation) {
+            onCreateAutomation(formData);
+        }
 
         handleClose();
     };
@@ -83,11 +137,14 @@ export function CreateAutomationModal({
         }
     };
 
+    const modalTitle = mode === 'edit' ? '자동화 수정' : '새 자동화 만들기';
+    const submitButtonText = mode === 'edit' ? '저장' : '자동화 생성';
+
     return (
         <CoreModal
             open={isOpen}
             onClose={handleClose}
-            title="새 자동화 만들기"
+            title={modalTitle}
             size="md"
         >
             <div className="space-y-5">
@@ -181,6 +238,46 @@ export function CreateAutomationModal({
                     />
                 </div>
 
+                {/* Manager */}
+                <div>
+                    <label className="block text-sm font-medium text-[var(--ft-text-primary)] mb-1.5">
+                        담당자 <span className="text-[var(--ft-text-disabled)]">(선택)</span>
+                    </label>
+                    <input
+                        type="text"
+                        value={manager}
+                        onChange={(e) => setManager(e.target.value)}
+                        placeholder="예: 김피처"
+                        className="w-full h-10 px-3 text-sm bg-white border border-[var(--ft-border-primary)] rounded-lg focus:border-[var(--ft-color-primary-500)] focus:outline-none transition-colors"
+                    />
+                </div>
+
+                {/* Period */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                        <label className="block text-sm font-medium text-[var(--ft-text-primary)] mb-1.5">
+                            시작일 <span className="text-[var(--ft-text-disabled)]">(선택)</span>
+                        </label>
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="w-full h-10 px-3 text-sm bg-white border border-[var(--ft-border-primary)] rounded-lg focus:border-[var(--ft-color-primary-500)] focus:outline-none transition-colors"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-[var(--ft-text-primary)] mb-1.5">
+                            종료일 <span className="text-[var(--ft-text-disabled)]">(선택)</span>
+                        </label>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="w-full h-10 px-3 text-sm bg-white border border-[var(--ft-border-primary)] rounded-lg focus:border-[var(--ft-color-primary-500)] focus:outline-none transition-colors"
+                        />
+                    </div>
+                </div>
+
                 {/* Description */}
                 <div>
                     <label className="block text-sm font-medium text-[var(--ft-text-primary)] mb-1.5">
@@ -207,10 +304,10 @@ export function CreateAutomationModal({
                     <CoreButton
                         variant="primary"
                         size="md"
-                        onClick={handleCreate}
+                        onClick={handleSubmit}
                         disabled={!isValid}
                     >
-                        자동화 생성
+                        {submitButtonText}
                     </CoreButton>
                 </div>
             </div>

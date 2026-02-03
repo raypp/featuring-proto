@@ -1,9 +1,9 @@
 import { useState, useMemo } from "react";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Pencil, Trash2 } from "lucide-react";
 import { CoreButton, CoreDot } from "../../design-system";
 import { AutomationGroup } from "../types";
 import { AgGridReact } from "ag-grid-react";
-import { ColDef, ModuleRegistry, AllCommunityModule, ICellRendererParams, SelectionOptions } from "ag-grid-community";
+import { ColDef, ModuleRegistry, AllCommunityModule, ICellRendererParams, RowSelectionOptions } from "ag-grid-community";
 import { customAgGridTheme } from "../utils/agGridTheme";
 
 // Register AG Grid Modules
@@ -13,6 +13,8 @@ interface AutomationGroupListProps {
     automationGroups: AutomationGroup[];
     onNavigate: (view: string) => void;
     onCreateGroup: () => void;
+    onEditGroup: (group: AutomationGroup) => void;
+    onDeleteGroup: (group: AutomationGroup) => void;
 }
 
 // Status Cell Renderer
@@ -47,7 +49,7 @@ const StatusCellRenderer = (params: ICellRendererParams<AutomationGroup>) => {
     );
 };
 
-export default function AutomationGroupList2({ automationGroups, onNavigate, onCreateGroup }: AutomationGroupListProps) {
+export default function AutomationGroupList2({ automationGroups, onNavigate, onCreateGroup, onEditGroup, onDeleteGroup }: AutomationGroupListProps) {
     const [searchTerm, setSearchTerm] = useState("");
     const [activeTab, setActiveTab] = useState<'all' | 'running' | 'completed'>('all');
 
@@ -73,7 +75,7 @@ export default function AutomationGroupList2({ automationGroups, onNavigate, onC
     }, [automationGroups, activeTab, searchTerm]);
 
     // Column Definitions
-    const columnDefs = useMemo<ColDef<AutomationGroup>[]>(() => [
+    const columnDefs: ColDef<AutomationGroup>[] = useMemo(() => [
         {
             headerName: "No.",
             width: 60,
@@ -86,37 +88,102 @@ export default function AutomationGroupList2({ automationGroups, onNavigate, onC
             field: "name",
             headerName: "자동화명",
             flex: 1,
-            minWidth: 200,
+            minWidth: 180,
             cellRenderer: (params: ICellRendererParams<AutomationGroup>) => (
                 <div className="flex flex-col justify-center h-full">
                     <span className="font-medium text-[var(--ft-text-primary)]">{params.value}</span>
                 </div>
             ),
             cellStyle: { display: 'flex', alignItems: 'center', cursor: 'pointer' },
-            onCellClicked: (params) => params.data && onNavigate(`automation-group-detail-${params.data.id}`)
+            onCellClicked: (params) => params.data && onNavigate(`automation-group-detail-2-${params.data.id}`)
         },
         {
             field: "campaignName",
-            headerName: "캠페인",
-            width: 220,
+            headerName: "연결 캠페인",
+            width: 160,
             valueFormatter: (params) => params.value || '단독',
+            cellStyle: { display: 'flex', alignItems: 'center', color: 'var(--ft-text-secondary)' }
+        },
+        {
+            field: "productBrand",
+            headerName: "상품/브랜드명",
+            width: 140,
+            valueFormatter: (params) => params.value || '-',
             cellStyle: { display: 'flex', alignItems: 'center', color: 'var(--ft-text-secondary)' }
         },
         {
             field: "status",
             headerName: "상태",
-            width: 110,
+            width: 100,
             cellRenderer: StatusCellRenderer,
             cellStyle: { display: 'flex', alignItems: 'center' }
         },
         {
-            field: "productBrand",
-            headerName: "상품/브랜드명",
-            width: 180,
+            field: "manager",
+            headerName: "담당자",
+            width: 100,
             valueFormatter: (params) => params.value || '-',
             cellStyle: { display: 'flex', alignItems: 'center', color: 'var(--ft-text-secondary)' }
+        },
+        {
+            headerName: "기간",
+            width: 180,
+            valueGetter: (params) => {
+                const start = params.data?.startDate;
+                const end = params.data?.endDate;
+                if (start && end) {
+                    return `${start} ~ ${end}`;
+                } else if (start) {
+                    return `${start} ~`;
+                }
+                return '-';
+            },
+            cellStyle: { display: 'flex', alignItems: 'center', color: 'var(--ft-text-secondary)' }
+        },
+        {
+            field: "createdAt",
+            headerName: "생성일",
+            width: 110,
+            cellStyle: { display: 'flex', alignItems: 'center', color: 'var(--ft-text-secondary)' }
+        },
+        {
+            field: "createdBy",
+            headerName: "생성자",
+            width: 100,
+            valueFormatter: (params) => params.value || '-',
+            cellStyle: { display: 'flex', alignItems: 'center', color: 'var(--ft-text-secondary)' }
+        },
+        {
+            headerName: "",
+            width: 80,
+            sortable: false,
+            resizable: false,
+            cellRenderer: (params: ICellRendererParams<AutomationGroup>) => (
+                <div className="flex items-center justify-center gap-1 h-full">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            params.data && onEditGroup(params.data);
+                        }}
+                        className="p-1.5 rounded hover:bg-[var(--ft-bg-secondary)] text-[var(--ft-text-secondary)] hover:text-[var(--ft-color-primary-600)] transition-colors"
+                        title="수정"
+                    >
+                        <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            params.data && onDeleteGroup(params.data);
+                        }}
+                        className="p-1.5 rounded hover:bg-red-50 text-[var(--ft-text-secondary)] hover:text-red-600 transition-colors"
+                        title="삭제"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                </div>
+            )
         }
-    ], [onNavigate]);
+    ] as ColDef<AutomationGroup>[], [onNavigate, onEditGroup, onDeleteGroup]);
 
     const defaultColDef = useMemo<ColDef>(() => ({
         sortable: true,
@@ -125,7 +192,7 @@ export default function AutomationGroupList2({ automationGroups, onNavigate, onC
         headerClass: "bg-[var(--ft-bg-secondary)] text-[var(--ft-text-secondary)] font-medium text-xs"
     }), []);
 
-    const selectionOptions = useMemo<SelectionOptions>(() => ({
+    const selectionOptions = useMemo<RowSelectionOptions>(() => ({
         mode: 'multiRow',
         headerCheckbox: true,
         checkboxes: true,

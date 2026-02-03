@@ -114,6 +114,14 @@ export function Sidebar({ currentView, onChangeView, onBackToServiceSelector }: 
                         tag="NEW"
                         tagColor="purple"
                     />
+                    <NavItem
+                        icon={Zap}
+                        label="전달 스텝 테스트"
+                        isActive={isActive('delivery-step-test')}
+                        onClick={() => onChangeView('delivery-step-test')}
+                        tag="NEW"
+                        tagColor="purple"
+                    />
 
 
                 </div>
