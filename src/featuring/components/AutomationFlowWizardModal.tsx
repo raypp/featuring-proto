@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Users, FileText, Send, Check, Search, Plus, Instagram, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Users, FileText, Send, Check, Search, Plus, Instagram, X, Lock, Unlock, Edit3 } from "lucide-react";
 import { CoreButton, CoreAvatar, CoreModal } from "../../design-system";
 import { AutomationInfluencer, DMTemplate, CTALink } from "../types";
 
@@ -84,6 +84,17 @@ export function AutomationFlowWizardModal({ isOpen, onClose, onComplete }: Autom
     const [triggerKeywords, setTriggerKeywords] = useState<string[]>([]);
     const [newKeyword, setNewKeyword] = useState('');
 
+    // Lock settings for each field (prevents influencer from editing)
+    const [dmMessageLocked, setDmMessageLocked] = useState(true);
+    const [triggerKeywordsLocked, setTriggerKeywordsLocked] = useState(true);
+    const [ctaLinksLocked, setCtaLinksLocked] = useState<boolean[]>([true]);
+
+    // Per-influencer link settings
+    const [useIndividualLinks, setUseIndividualLinks] = useState(false);
+    const [individualLinkSettings, setIndividualLinkSettings] = useState<Map<number, CTALink[]>>(new Map());
+    const [showIndividualLinkModal, setShowIndividualLinkModal] = useState(false);
+    const [editingInfluencerId, setEditingInfluencerId] = useState<number | null>(null);
+
     // Reset state on close
     const handleClose = () => {
         setCurrentStep(1);
@@ -163,11 +174,48 @@ export function AutomationFlowWizardModal({ isOpen, onClose, onComplete }: Autom
     const handleAddCtaLink = () => {
         if (ctaLinks.length < 3) {
             setCtaLinks(prev => [...prev, { buttonName: '', url: '' }]);
+            setCtaLinksLocked(prev => [...prev, true]);
         }
     };
 
     const handleRemoveCtaLink = (index: number) => {
         setCtaLinks(prev => prev.filter((_, i) => i !== index));
+        setCtaLinksLocked(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleToggleCtaLock = (index: number) => {
+        setCtaLinksLocked(prev => prev.map((locked, i) => i === index ? !locked : locked));
+    };
+
+    // Individual link settings handlers
+    const handleOpenIndividualLinkEditor = (influencerId: number) => {
+        setEditingInfluencerId(influencerId);
+        // Initialize with default links if not set
+        if (!individualLinkSettings.has(influencerId)) {
+            setIndividualLinkSettings(prev => {
+                const newMap = new Map(prev);
+                newMap.set(influencerId, ctaLinks.map(l => ({ ...l })));
+                return newMap;
+            });
+        }
+        setShowIndividualLinkModal(true);
+    };
+
+    const handleUpdateIndividualLink = (influencerId: number, index: number, field: 'buttonName' | 'url', value: string) => {
+        setIndividualLinkSettings(prev => {
+            const newMap = new Map(prev);
+            const links = newMap.get(influencerId) || [];
+            const updatedLinks = links.map((link, i) =>
+                i === index ? { ...link, [field]: value } : link
+            );
+            newMap.set(influencerId, updatedLinks);
+            return newMap;
+        });
+    };
+
+    const handleSaveIndividualLinks = () => {
+        setShowIndividualLinkModal(false);
+        setEditingInfluencerId(null);
     };
 
     const handleNext = () => {
@@ -453,7 +501,20 @@ export function AutomationFlowWizardModal({ isOpen, onClose, onComplete }: Autom
 
                                     {/* DM Message */}
                                     <div className="border border-gray-200 rounded-xl p-3">
-                                        <h4 className="text-sm font-semibold text-gray-900 mb-2">DM 메시지</h4>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h4 className="text-sm font-semibold text-gray-900">DM 메시지</h4>
+                                            <button
+                                                onClick={() => setDmMessageLocked(!dmMessageLocked)}
+                                                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors ${dmMessageLocked
+                                                    ? 'bg-purple-100 text-purple-700'
+                                                    : 'bg-gray-100 text-gray-500'
+                                                    }`}
+                                                title={dmMessageLocked ? '인플루언서가 수정할 수 없음' : '인플루언서가 수정할 수 있음'}
+                                            >
+                                                {dmMessageLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                                                {dmMessageLocked ? '잠금' : '수정 가능'}
+                                            </button>
+                                        </div>
                                         <textarea
                                             placeholder="인플루언서에게 전달할 메시지를 입력하세요..."
                                             value={dmMessage}
@@ -476,13 +537,23 @@ export function AutomationFlowWizardModal({ isOpen, onClose, onComplete }: Autom
 
                                         <div className="space-y-2">
                                             {ctaLinks.map((link, idx) => (
-                                                <div key={idx} className="flex gap-2">
+                                                <div key={idx} className="flex gap-2 items-center">
+                                                    <button
+                                                        onClick={() => handleToggleCtaLock(idx)}
+                                                        className={`p-1.5 rounded-lg transition-colors ${ctaLinksLocked[idx]
+                                                            ? 'bg-purple-100 text-purple-700'
+                                                            : 'bg-gray-100 text-gray-400'
+                                                            }`}
+                                                        title={ctaLinksLocked[idx] ? '인플루언서가 수정 불가' : '인플루언서가 수정 가능'}
+                                                    >
+                                                        {ctaLinksLocked[idx] ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                                                    </button>
                                                     <input
                                                         type="text"
                                                         placeholder="버튼명"
                                                         value={link.buttonName}
                                                         onChange={(e) => handleUpdateCtaLink(idx, 'buttonName', e.target.value)}
-                                                        className="w-1/3 px-2 py-1.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-purple-500"
+                                                        className="w-1/4 px-2 py-1.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-purple-500"
                                                     />
                                                     <input
                                                         type="text"
@@ -490,6 +561,7 @@ export function AutomationFlowWizardModal({ isOpen, onClose, onComplete }: Autom
                                                         value={link.url}
                                                         onChange={(e) => handleUpdateCtaLink(idx, 'url', e.target.value)}
                                                         className="flex-1 px-2 py-1.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-purple-500"
+                                                        disabled={useIndividualLinks}
                                                     />
                                                     {ctaLinks.length > 1 && (
                                                         <button
@@ -501,6 +573,51 @@ export function AutomationFlowWizardModal({ isOpen, onClose, onComplete }: Autom
                                                     )}
                                                 </div>
                                             ))}
+                                        </div>
+
+                                        {/* Individual Link Settings Toggle */}
+                                        <div className="mt-3 pt-3 border-t border-gray-100">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={useIndividualLinks}
+                                                    onChange={(e) => setUseIndividualLinks(e.target.checked)}
+                                                    className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                                />
+                                                <span className="text-sm text-gray-700">인플루언서마다 다른 링크 설정하기</span>
+                                            </label>
+
+                                            {useIndividualLinks && (
+                                                <div className="mt-2 p-2 bg-purple-50 rounded-lg">
+                                                    <p className="text-xs text-purple-700 mb-2">각 인플루언서별로 개별 URL을 설정하세요:</p>
+                                                    <div className="max-h-[120px] overflow-y-auto space-y-1.5">
+                                                        {selectedInfluencers.map(inf => {
+                                                            const hasCustomLinks = individualLinkSettings.has(inf.id!);
+                                                            return (
+                                                                <div
+                                                                    key={inf.id}
+                                                                    className="flex items-center justify-between p-2 bg-white rounded-lg border border-purple-200"
+                                                                >
+                                                                    <div className="flex items-center gap-2">
+                                                                        <CoreAvatar size="xs" name={inf.displayName || ''} />
+                                                                        <span className="text-xs font-medium text-gray-800">{inf.displayName}</span>
+                                                                    </div>
+                                                                    <button
+                                                                        onClick={() => handleOpenIndividualLinkEditor(inf.id!)}
+                                                                        className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors ${hasCustomLinks
+                                                                            ? 'bg-green-100 text-green-700'
+                                                                            : 'bg-gray-100 text-gray-600 hover:bg-purple-100 hover:text-purple-700'
+                                                                            }`}
+                                                                    >
+                                                                        <Edit3 className="w-3 h-3" />
+                                                                        {hasCustomLinks ? '수정' : '설정'}
+                                                                    </button>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -650,6 +767,66 @@ export function AutomationFlowWizardModal({ isOpen, onClose, onComplete }: Autom
                     </div>
                 </div>
             </div>
+
+            {/* Individual Link Editor Modal */}
+            {showIndividualLinkModal && editingInfluencerId && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/30" onClick={() => setShowIndividualLinkModal(false)} />
+                    <div className="relative bg-white rounded-xl shadow-xl w-[500px] p-5">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                                <CoreAvatar size="sm" name={selectedInfluencers.find(i => i.id === editingInfluencerId)?.displayName || ''} />
+                                <div>
+                                    <h3 className="text-sm font-semibold text-gray-900">
+                                        {selectedInfluencers.find(i => i.id === editingInfluencerId)?.displayName}
+                                    </h3>
+                                    <p className="text-xs text-gray-500">개별 링크 설정</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowIndividualLinkModal(false)}
+                                className="p-1 hover:bg-gray-100 rounded-full"
+                            >
+                                <X className="w-4 h-4 text-gray-500" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-3">
+                            {(individualLinkSettings.get(editingInfluencerId) || ctaLinks).map((link, idx) => (
+                                <div key={idx} className="flex items-center gap-2">
+                                    <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold">
+                                        {idx + 1}
+                                    </span>
+                                    <div className="flex-1 space-y-1">
+                                        <input
+                                            type="text"
+                                            value={link.buttonName}
+                                            disabled
+                                            className="w-full px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-500"
+                                        />
+                                        <input
+                                            type="text"
+                                            placeholder="URL 입력"
+                                            value={link.url}
+                                            onChange={(e) => handleUpdateIndividualLink(editingInfluencerId, idx, 'url', e.target.value)}
+                                            className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-purple-500"
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-100">
+                            <CoreButton variant="secondary" size="sm" onClick={() => setShowIndividualLinkModal(false)}>
+                                취소
+                            </CoreButton>
+                            <CoreButton variant="primary" size="sm" onClick={handleSaveIndividualLinks}>
+                                저장
+                            </CoreButton>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
