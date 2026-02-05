@@ -103,24 +103,24 @@ export function Sidebar({ currentView, onChangeView, onBackToServiceSelector }: 
                     <NavItem
                         icon={Zap}
                         label="반응 자동화 관리"
+                        isActive={isActive('delivery-step-test')}
+                        onClick={() => onChangeView('delivery-step-test')}
+                    />
+                    <NavItem
+                        icon={Zap}
+                        label="test_sidesheet"
                         isActive={isActive('automation-groups')}
                         onClick={() => onChangeView('automation-groups')}
+                        tag="TEST"
+                        tagColor="gray"
                     />
                     <NavItem
                         icon={Zap}
                         label="UX Test"
                         isActive={isActive('automation-groups-2')}
                         onClick={() => onChangeView('automation-groups-2')}
-                        tag="NEW"
-                        tagColor="purple"
-                    />
-                    <NavItem
-                        icon={Zap}
-                        label="전달 스텝 테스트"
-                        isActive={isActive('delivery-step-test')}
-                        onClick={() => onChangeView('delivery-step-test')}
-                        tag="NEW"
-                        tagColor="purple"
+                        tag="TEST"
+                        tagColor="gray"
                     />
 
 
